@@ -1,8 +1,8 @@
 const state = {
   settings: {
-    siteName: 'OyunIndirGG.com.tr',
+    siteName: 'OyunIndir.gg',
     siteSlogan: "Türkiye'nin En Hızlı Full PC Oyun Arşivi",
-    rarPassword: 'www.oyunindirgg.com.tr',
+    rarPassword: 'www.oyunindirgg.space',
     announcement: ''
   },
   games: [],
@@ -20,6 +20,7 @@ const state = {
 };
 
 const CATEGORIES = [
+  'Online',
   'Açık Dünya',
   'Aksiyon',
   'RPG',
@@ -502,7 +503,7 @@ async function bootstrap() {
 }
 
 function applyHeaderUI() {
-  const rarPass = state.settings.rarPassword || 'www.oyunindirgg.com.tr';
+  const rarPass = state.settings.rarPassword || 'www.oyunindirgg.space';
   const topAnn = document.getElementById('topAnnouncement');
   const topRar = document.getElementById('topRarPass');
   const sideRar = document.getElementById('sidebarRarText');
@@ -818,7 +819,7 @@ function renderGameDetail(gameId) {
     <div class="detail-card">
       <div class="detail-breadcrumb">
         <div>
-          <a href="#/" onclick="goHomeView(event)" style="color:var(--red);font-weight:700;">OyunIndirGG.com.tr</a>
+          <a href="#/" onclick="goHomeView(event)" style="color:var(--red);font-weight:700;">OyunIndir.gg</a>
           ${hasVal(g.category) ? `
             <span> / </span>
             <span style="cursor:pointer;" onclick="setCategoryFilter('${escapeHtml(g.category)}')">${escapeHtml(g.category)}</span>
@@ -1508,7 +1509,7 @@ function renderAdminDashboard() {
   const sRar = document.getElementById('setRarPass');
   const sAnn = document.getElementById('setAnnouncement');
   if (sSlogan) sSlogan.value = state.settings.siteSlogan || '';
-  if (sRar) sRar.value = state.settings.rarPassword || 'www.oyunindirgg.com.tr';
+  if (sRar) sRar.value = state.settings.rarPassword || 'www.oyunindirgg.space';
   if (sAnn) sAnn.value = state.settings.announcement || '';
 }
 
@@ -1668,7 +1669,7 @@ function setCategoryFilter(cat) {
 }
 
 function copyRarPassword() {
-  const pass = state.settings.rarPassword || 'www.oyunindirgg.com.tr';
+  const pass = state.settings.rarPassword || 'www.oyunindirgg.space';
   navigator.clipboard?.writeText(pass);
   showToast(`RAR Şifresi kopyalandı: ${pass}`);
 }

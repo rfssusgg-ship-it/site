@@ -1,8 +1,8 @@
 {
   "settings": {
-    "siteName": "OyunIndirGG.com.tr",
+    "siteName": "OyunIndir.gg",
     "siteSlogan": "Türkiye'nin En Hızlı Full PC Oyun Arşivi",
-    "rarPassword": "www.oyunindirgg.com.tr",
+    "rarPassword": "www.oyunindirgg.space",
     "announcement": "Sitemizdeki tüm oyunları ücretsiz ve tam sürüm olarak indirebilirsiniz."
   },
   "users": [
@@ -14,7 +14,7 @@
       "role": "admin",
       "createdAt": "2026-11-08T23:07:24.134Z",
       "avatar": "https://i.hizliresim.com/8apaf6x2.png",
-      "token": "efe53aa1dfe229b72901b952d81deaea9b020c16224a597a"
+      "token": "a5edad148c25c16fcb901fee465e6a4da1a0734e7279e652"
     },
     {
       "id": "u-1794179287026",
@@ -28,18 +28,18 @@
   ],
   "games": [
     {
-      "id": "sd",
-      "title": "sd",
+      "id": "gdft",
+      "title": "gdft",
       "version": "",
       "category": "Açık Dünya",
       "tags": [],
       "size": "",
       "language": "",
       "repack": "",
-      "featured": true,
-      "createdAt": "2026-11-09T01:27:53.531Z",
-      "cover": "",
-      "banner": "",
+      "featured": false,
+      "createdAt": "2026-11-09T01:55:42.028Z",
+      "cover": "/uploads/game-1794189340773-712.webp",
+      "banner": "/uploads/game-1794189340773-712.webp",
       "screenshots": [],
       "shortDesc": "",
       "description": "",
@@ -61,63 +61,29 @@
         }
       },
       "links": []
-    },
-    {
-      "id": "sad",
-      "title": "sad",
-      "version": "ds",
-      "category": "Açık Dünya",
-      "tags": [
-        "sd"
-      ],
-      "size": "sd",
-      "language": "sd",
-      "repack": "sd",
-      "featured": false,
-      "createdAt": "2026-11-09T01:23:53.333Z",
-      "cover": "/uploads/game-1794187451136-700.png",
-      "banner": "/uploads/game-1794187451136-700.png",
-      "screenshots": [],
-      "shortDesc": "sd",
-      "description": "sd",
-      "installNotes": "sd",
-      "sysReq": {
-        "min": {
-          "os": "sd",
-          "cpu": "",
-          "ram": "",
-          "gpu": "",
-          "storage": ""
-        },
-        "rec": {
-          "os": "sd",
-          "cpu": "",
-          "ram": "",
-          "gpu": "",
-          "storage": ""
-        }
-      },
-      "links": [
-        {
-          "provider": "DRIVE",
-          "label": "Google Drive Tek Link İndir",
-          "url": "sds",
-          "type": "drive"
-        }
-      ]
     }
   ],
-  "comments": [],
-  "requests": [
+  "comments": [
     {
-      "id": "req-1794187783698",
-      "user": "swo",
-      "userAvatar": "https://i.hizliresim.com/8apaf6x2.png",
-      "gameName": "sdsd",
-      "note": "",
-      "status": "Bekliyor",
-      "createdAt": "2026-11-09T01:29:43.698Z"
+      "id": "c-1794189347715",
+      "gameId": "gdft",
+      "gameTitle": "gdft",
+      "userId": "u-1794179244134",
+      "author": "swo",
+      "authorAvatar": "https://i.hizliresim.com/8apaf6x2.png",
+      "isAdmin": true,
+      "text": "sds",
+      "createdAt": "2026-11-09T01:55:47.715Z",
+      "replies": []
     }
   ],
-  "brokenReports": []
+  "requests": [],
+  "brokenReports": [
+    {
+      "id": "br-1794187912970",
+      "gameId": "sad",
+      "gameTitle": "sad",
+      "createdAt": "2026-11-09T01:31:52.970Z"
+    }
+  ]
 }
