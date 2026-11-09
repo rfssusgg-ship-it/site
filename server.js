@@ -1,4 +1,5 @@
 const http = require('http');
+const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -7,6 +8,14 @@ const PORT = process.env.PORT || 3000;
 const DB_PATH = path.join(__dirname, 'data', 'db.json');
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const UPLOADS_DIR = path.join(PUBLIC_DIR, 'uploads');
+
+// Kalıcı bulut senkronizasyon kanalı (Render yeniden başlasa bile oyunları ve verileri korur)
+const CLOUD_SYNC_TOPIC = process.env.CLOUD_SYNC_TOPIC || 'oyunindirgg_cloud_store_v2_8d4f9a2c1e7b';
+const PUBLIC_URLS = [
+  'https://oyunindirgg.space/api/ping',
+  'https://www.oyunindirgg.space/api/ping',
+  'https://site-ap0j.onrender.com/api/ping'
+];
 
 if (!fs.existsSync(UPLOADS_DIR)) {
   fs.mkdirSync(UPLOADS_DIR, { recursive: true });
@@ -28,8 +37,83 @@ function readDB() {
   }
 }
 
+async function pushCloudSnapshot(data) {
+  try {
+    const payloadObj = { ...data, _updatedAt: Date.now() };
+    const jsonStr = JSON.stringify(payloadObj);
+    if (Buffer.byteLength(jsonStr, 'utf-8') < 3500) {
+      await fetch(`https://ntfy.sh/${CLOUD_SYNC_TOPIC}`, {
+        method: 'POST',
+        body: jsonStr
+      });
+    } else {
+      await fetch(`https://ntfy.sh/${CLOUD_SYNC_TOPIC}`, {
+        method: 'PUT',
+        headers: { 'Filename': 'db.json' },
+        body: jsonStr
+      });
+    }
+  } catch (err) {
+    console.error('Bulut yedekleme uyarısı:', err.message);
+  }
+}
+
+async function restoreFromCloudDB() {
+  try {
+    const res = await fetch(`https://ntfy.sh/${CLOUD_SYNC_TOPIC}/json?poll=1&since=24h`);
+    if (!res.ok) return;
+    const text = await res.text();
+    const lines = text.trim().split('\n').filter(Boolean);
+    if (lines.length === 0) return;
+
+    for (let i = lines.length - 1; i >= 0; i--) {
+      try {
+        const evt = JSON.parse(lines[i]);
+        if (evt.event !== 'message') continue;
+
+        let cloudData = null;
+        if (evt.attachment && evt.attachment.url) {
+          const attRes = await fetch(evt.attachment.url);
+          if (attRes.ok) {
+            cloudData = await attRes.json();
+          }
+        } else if (evt.message && evt.message.startsWith('{')) {
+          cloudData = JSON.parse(evt.message);
+        }
+
+        if (cloudData && Array.isArray(cloudData.users) && Array.isArray(cloudData.games)) {
+          fs.writeFileSync(DB_PATH, JSON.stringify(cloudData, null, 2), 'utf-8');
+          console.log(`Bulut veritabanı geri yüklendi (${cloudData.games.length} oyun, ${cloudData.users.length} üye).`);
+          return;
+        }
+      } catch {}
+    }
+  } catch (err) {
+    console.error('Bulut veritabanı okuma uyarısı:', err.message);
+  }
+}
+
 function writeDB(data) {
+  data._updatedAt = Date.now();
   fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2), 'utf-8');
+  pushCloudSnapshot(data);
+}
+
+function startKeepAliveAndSync() {
+  // Her 3.5 dakikada bir dış adreslere ping atarak Render'ın uykuya geçmesini engelle
+  setInterval(() => {
+    PUBLIC_URLS.forEach(url => {
+      https.get(url, res => {
+        res.resume();
+      }).on('error', () => {});
+    });
+  }, 3.5 * 60 * 1000);
+
+  // Her 2 saatte bir mevcut veritabanını bulutta tazele
+  setInterval(() => {
+    const db = readDB();
+    pushCloudSnapshot(db);
+  }, 2 * 60 * 60 * 1000);
 }
 
 function slugify(text) {
@@ -88,7 +172,6 @@ function getCurrentUser(req, db) {
   };
 }
 
-// Yorum ve yanıtlara kullanıcının güncel profil fotoğrafını ve kullanıcı adını ekler
 function enrichComments(comments, users) {
   const userMap = new Map(users.map(u => [u.id, u]));
   return (comments || []).map(c => {
@@ -132,6 +215,11 @@ const server = http.createServer(async (req, res) => {
   const method = req.method;
 
   try {
+    // 0. Keep-Alive Ping Uç Noktası
+    if (pathname === '/api/ping' && method === 'GET') {
+      return sendJSON(res, 200, { ok: true, time: Date.now() });
+    }
+
     // 1. Bootstrap (Site açılış verileri)
     if (pathname === '/api/bootstrap' && method === 'GET') {
       const db = readDB();
@@ -160,7 +248,7 @@ const server = http.createServer(async (req, res) => {
       });
     }
 
-    // 2. Kayıt Ol (Yeni Üye Hesabı Açma)
+    // 2. Kayıt Ol
     if (pathname === '/api/auth/register' && method === 'POST') {
       const body = await parseBody(req);
       const username = String(body.username || '').trim();
@@ -253,7 +341,7 @@ const server = http.createServer(async (req, res) => {
       return sendJSON(res, 200, { ok: true });
     }
 
-    // 5. Hesap Ayarları & Profil Güncelleme (Şifre, E-posta, Profil Fotoğrafı, Kullanıcı Adı)
+    // 5. Hesap Ayarları & Profil Güncelleme
     if (pathname === '/api/profile' && method === 'POST') {
       const db = readDB();
       const currentUser = getCurrentUser(req, db);
@@ -265,7 +353,6 @@ const server = http.createServer(async (req, res) => {
       const userRecord = db.users.find(u => u.id === currentUser.id);
       if (!userRecord) return sendJSON(res, 404, { error: 'Kullanıcı bulunamadı.' });
 
-      // Kullanıcı adı güncelleme
       if (body.username !== undefined) {
         const newUsername = String(body.username).trim();
         if (newUsername.length < 3 || newUsername.length > 24) {
@@ -276,7 +363,6 @@ const server = http.createServer(async (req, res) => {
         userRecord.username = newUsername;
       }
 
-      // E-posta güncelleme
       if (body.email !== undefined) {
         const newEmail = String(body.email).trim().toLowerCase();
         if (newEmail) {
@@ -286,12 +372,10 @@ const server = http.createServer(async (req, res) => {
         userRecord.email = newEmail;
       }
 
-      // Profil fotoğrafı (URL veya yüklenmiş dosya)
       if (body.avatar !== undefined) {
         userRecord.avatar = String(body.avatar).trim();
       }
 
-      // Şifre değiştirme
       if (body.newPassword) {
         if (!body.currentPassword || body.currentPassword !== userRecord.passwordHash) {
           return sendJSON(res, 400, { error: 'Mevcut şifrenizi yanlış girdiniz.' });
@@ -317,7 +401,7 @@ const server = http.createServer(async (req, res) => {
       });
     }
 
-    // 6. Görsel Yükleme (Üyeler profil resmi için, Admin oyun kapağı için kullanabilir)
+    // 6. Görsel Yükleme (Kalıcı olması için doğrudan DataURL olarak da saklanır)
     if (pathname === '/api/upload' && method === 'POST') {
       const db = readDB();
       const currentUser = getCurrentUser(req, db);
@@ -328,12 +412,9 @@ const server = http.createServer(async (req, res) => {
       if (!body.dataUrl) return sendJSON(res, 400, { error: 'Görsel verisi yok' });
       const match = body.dataUrl.match(/^data:image\/([a-zA-Z0-9+]+);base64,(.+)$/);
       if (!match) return sendJSON(res, 400, { error: 'Geçersiz görsel formatı' });
-      const ext = match[1] === 'jpeg' ? 'jpg' : match[1];
-      const prefix = body.kind === 'avatar' ? 'avatar' : 'game';
-      const filename = `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1000)}.${ext}`;
-      const filePath = path.join(UPLOADS_DIR, filename);
-      fs.writeFileSync(filePath, Buffer.from(match[2], 'base64'));
-      return sendJSON(res, 200, { ok: true, url: `/uploads/${filename}` });
+
+      // Sunucu yeniden başlasa bile görselin kaybolmaması için doğrudan dataUrl döndürülür
+      return sendJSON(res, 200, { ok: true, url: body.dataUrl });
     }
 
     // 7. Oyun Ekle veya Güncelle (Sadece Admin)
@@ -413,7 +494,7 @@ const server = http.createServer(async (req, res) => {
       return sendJSON(res, 200, { ok: true, games: db.games });
     }
 
-    // 9. Yorum Ekle (Kayıtlı Kullanıcılar & Admin)
+    // 9. Yorum Ekle
     if (pathname === '/api/comments' && method === 'POST') {
       const db = readDB();
       const currentUser = getCurrentUser(req, db);
@@ -479,7 +560,7 @@ const server = http.createServer(async (req, res) => {
       return sendJSON(res, 200, { ok: true, comments: enrichComments(db.comments, db.users) });
     }
 
-    // 11. Yorum Sil (Admin veya Yorumun Sahibi)
+    // 11. Yorum Sil
     if (pathname.startsWith('/api/comments/') && method === 'DELETE') {
       const db = readDB();
       const currentUser = getCurrentUser(req, db);
@@ -640,6 +721,10 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, () => {
-  console.log(`OyunIndirGG.com.tr sunucusu çalışıyor: http://localhost:${PORT}`);
+// Başlangıçta buluttaki son veritabanını geri yükle, ardından sunucuyu ve Keep-Alive sistemini başlat
+restoreFromCloudDB().finally(() => {
+  server.listen(PORT, () => {
+    console.log(`OyunIndir.gg sunucusu çalışıyor: http://localhost:${PORT}`);
+    startKeepAliveAndSync();
+  });
 });

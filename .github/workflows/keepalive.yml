@@ -1,0 +1,15 @@
+name: Keep OyunIndirGG Awake 24-7
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping OyunIndirGG Server
+        run: |
+          curl -fsS --max-time 15 https://oyunindirgg.space/api/ping || true
+          curl -fsS --max-time 15 https://site-ap0j.onrender.com/api/ping || true
