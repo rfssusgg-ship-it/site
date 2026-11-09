@@ -1,33 +1,104 @@
 {
-  "settings": {
-    "siteName": "OyunIndir.gg",
-    "siteSlogan": "Türkiye'nin En Hızlı Full PC Oyun Arşivi",
-    "rarPassword": "www.oyunindirgg.space",
-    "announcement": "Sitemizdeki tüm oyunları ücretsiz ve tam sürüm olarak indirebilirsiniz."
-  },
-  "users": [
-    {
-      "id": "u-1794179244134",
-      "username": "swo",
-      "email": "rfssusgg@gmail.com",
-      "passwordHash": "purna1",
-      "role": "admin",
-      "createdAt": "2026-11-08T23:07:24.134Z",
-      "avatar": "https://i.hizliresim.com/8apaf6x2.png",
-      "token": "a5edad148c25c16fcb901fee465e6a4da1a0734e7279e652"
-    },
-    {
-      "id": "u-1794179287026",
-      "username": "deneme",
-      "email": "dyyddiud7@gmail.com",
-      "passwordHash": "purna1",
-      "role": "user",
-      "createdAt": "2026-11-08T23:08:07.026Z",
-      "avatar": "/uploads/avatar-1794187354561-426.jpg"
-    }
-  ],
-  "games": [],
-  "comments": [],
-  "requests": [],
-  "brokenReports": []
+    "settings":  {
+                     "siteName":  "OyunIndir.gg",
+                     "siteSlogan":  "Türkiye\u0027nin En Hızlı Full PC Oyun Arşivi",
+                     "rarPassword":  "www.oyunindirgg.space",
+                     "announcement":  "Sitemizdeki tüm oyunları ücretsiz ve tam sürüm olarak indirebilirsiniz."
+                 },
+    "users":  [
+                  {
+                      "id":  "u-1794179244134",
+                      "username":  "swo",
+                      "email":  "rfssusgg@gmail.com",
+                      "passwordHash":  "purna1",
+                      "role":  "admin",
+                      "createdAt":  "2026-11-08T23:07:24.134Z",
+                      "avatar":  "https://i.hizliresim.com/8apaf6x2.png",
+                      "token":  "a5edad148c25c16fcb901fee465e6a4da1a0734e7279e652"
+                  },
+                  {
+                      "id":  "u-1794179287026",
+                      "username":  "deneme",
+                      "email":  "dyyddiud7@gmail.com",
+                      "passwordHash":  "purna1",
+                      "role":  "user",
+                      "createdAt":  "2026-11-08T23:08:07.026Z",
+                      "avatar":  "/uploads/avatar-1794187354561-426.jpg"
+                  }
+              ],
+    "games":  [
+                  {
+                      "id":  "gdft",
+                      "title":  "EA SPORTS FC 27 İNDİR + FULL BYPASS + ONLİNE",
+                      "version":  "",
+                      "category":  "Spor",
+                      "tags":  [
+                                   "Spor",
+                                   "EA SPORTS",
+                                   "FC 27",
+                                   "FİFA"
+                               ],
+                      "size":  "68 GB",
+                      "language":  "Türkçe",
+                      "repack":  "",
+                      "featured":  true,
+                      "createdAt":  "2026-11-09T01:55:42.028Z",
+                      "cover":  "/uploads/game-1794245808282-975.jpg",
+                      "banner":  "/uploads/game-1794245808282-975.jpg",
+                      "screenshots":  [
+                                          "https://i.hizliresim.com/cz9dvdg4.jpg",
+                                          "https://i.hizliresim.com/ddpmmuku.jpg"
+                                      ],
+                      "shortDesc":  "EA SPORTS FC 27, futbol tutkunlarına gerçekçi maç deneyimi, gelişmiş oynanış mekanikleri ve yenilenen oyun modları sunan futbol simülasyonu oyunudur",
+                      "description":  "EA SPORTS FC 27, futbol tutkunlarına gerçekçi ve heyecan dolu bir futbol deneyimi sunan yeni nesil futbol oyunlarından biridir. Oyuncular, dünyanın farklı liglerinden takımları seçerek rekabet dolu karşılaşmalara katılabilir, favori futbolcularıyla sahaya çıkabilir ve kendi futbol hikâyelerini oluşturabilir.\n\nOyunda farklı oyun modları sayesinde herkes kendi oyun tarzına uygun bir deneyim yaşayabilir. Ultimate Team modunda kendi kadronu kurabilir, yıldız futbolcuları takımına ekleyebilir ve diğer oyunculara karşı mücadele edebilirsin. Kariyer Modu ile bir takımı yönetebilir, transferler yapabilir, genç yetenekleri keşfedebilir ve kulübünü zirveye taşımaya çalışabilirsin. Ayrıca çevrim içi ve yerel maç seçenekleriyle arkadaşlarınla veya dünyanın dört bir yanındaki oyuncularla karşılaşabilirsin.\n\nGeliştirilmiş grafikler, futbolcu animasyonları, stadyum atmosferi ve oynanış mekanikleriyle FC 27, futbol heyecanını ekranlarına taşımayı hedefler. Takımını oluştur, taktiklerini belirle ve sahada yeteneklerini göster!",
+                      "installNotes":  "",
+                      "sysReq":  {
+                                     "min":  {
+                                                 "os":  "Windows 10/11 64-bit",
+                                                 "cpu":  "Intel Core i5-6600K / Ryzen 5 1600",
+                                                 "ram":  "8 GB",
+                                                 "gpu":  "GTX 1050 Ti 4 GB",
+                                                 "storage":  "100 GB"
+                                             },
+                                     "rec":  {
+                                                 "os":  "Windows 10/11 64-bit",
+                                                 "cpu":  "Intel Core i7-6700 / Ryzen 7 2700X",
+                                                 "ram":  "12 GB",
+                                                 "gpu":  "GTX 1660 6 GB",
+                                                 "storage":  "100 GB"
+                                             }
+                                 },
+                      "links":  [
+                                    {
+                                        "provider":  "DRIVE",
+                                        "label":  "Google Drive Tek Link İndir",
+                                        "url":  "https://drive.google.com/file/d/1KT4dnO2y-BUqVn6bIgJr836-H4mJ06re/view?usp=sharing",
+                                        "type":  "drive"
+                                    }
+                                ]
+                  }
+              ],
+    "comments":  [
+                     {
+                         "id":  "c-1794189347715",
+                         "gameId":  "gdft",
+                         "gameTitle":  "gdft",
+                         "userId":  "u-1794179244134",
+                         "author":  "swo",
+                         "authorAvatar":  "https://i.hizliresim.com/8apaf6x2.png",
+                         "isAdmin":  true,
+                         "text":  "sds",
+                         "createdAt":  "2026-11-09T01:55:47.715Z",
+                         "replies":  [
+
+                                     ]
+                     }
+                 ],
+    "requests":  [
+
+                 ],
+    "brokenReports":  [
+
+                      ],
+    "_updatedAt":  1794246400046
 }

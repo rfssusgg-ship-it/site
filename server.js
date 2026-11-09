@@ -82,8 +82,38 @@ async function restoreFromCloudDB() {
         }
 
         if (cloudData && Array.isArray(cloudData.users) && Array.isArray(cloudData.games)) {
-          fs.writeFileSync(DB_PATH, JSON.stringify(cloudData, null, 2), 'utf-8');
-          console.log(`Bulut veritabanı geri yüklendi (${cloudData.games.length} oyun, ${cloudData.users.length} üye).`);
+          const localDB = readDB();
+          const deletedIds = new Set([...(localDB.deletedGameIds || []), ...(cloudData.deletedGameIds || [])]);
+
+          const gameMap = new Map();
+          [...(localDB.games || []), ...(cloudData.games || [])].forEach(g => {
+            if (g && g.id && !deletedIds.has(g.id)) {
+              gameMap.set(g.id, g);
+            }
+          });
+
+          const userMap = new Map();
+          [...(localDB.users || []), ...(cloudData.users || [])].forEach(u => {
+            if (u && u.id) userMap.set(u.id, u);
+          });
+
+          const commentMap = new Map();
+          [...(localDB.comments || []), ...(cloudData.comments || [])].forEach(c => {
+            if (c && c.id && !deletedIds.has(c.gameId)) commentMap.set(c.id, c);
+          });
+
+          const merged = {
+            ...localDB,
+            ...cloudData,
+            settings: { ...(localDB.settings || {}), ...(cloudData.settings || {}) },
+            users: Array.from(userMap.values()),
+            games: Array.from(gameMap.values()).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)),
+            comments: Array.from(commentMap.values()),
+            deletedGameIds: Array.from(deletedIds)
+          };
+
+          fs.writeFileSync(DB_PATH, JSON.stringify(merged, null, 2), 'utf-8');
+          console.log(`Bulut veritabanı senkronize edildi (${merged.games.length} oyun, ${merged.users.length} üye).`);
           return;
         }
       } catch {}
@@ -442,6 +472,9 @@ const server = http.createServer(async (req, res) => {
         createdAt: existingIndex > -1 ? db.games[existingIndex].createdAt : new Date().toISOString(),
         cover: String(body.cover || '').trim(),
         banner: String(body.banner || body.cover || '').trim(),
+        youtubeUrl: String(body.youtubeUrl || '').trim(),
+        rarPassword: body.rarPassword !== undefined ? String(body.rarPassword).trim() : String(db.settings?.rarPassword || 'www.oyunindirgg.space').trim(),
+        downloadNote: String(body.downloadNote || '').trim(),
         screenshots: Array.isArray(body.screenshots) ? body.screenshots.filter(Boolean) : [],
         shortDesc: String(body.shortDesc || '').trim(),
         description: String(body.description || '').trim(),
@@ -490,6 +523,7 @@ const server = http.createServer(async (req, res) => {
       const id = decodeURIComponent(pathname.split('/')[3]);
       db.games = db.games.filter(g => g.id !== id);
       db.comments = db.comments.filter(c => c.gameId !== id);
+      db.deletedGameIds = Array.from(new Set([...(db.deletedGameIds || []), id]));
       writeDB(db);
       return sendJSON(res, 200, { ok: true, games: db.games });
     }

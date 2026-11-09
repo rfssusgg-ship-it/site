@@ -383,6 +383,11 @@
                 </div>
 
                 <div class="form-group">
+                  <label>YouTube Tanıtım / Oynanış Videosu (İsteğe Bağlı)</label>
+                  <input type="text" id="gYoutubeUrl" placeholder="Örn: https://www.youtube.com/watch?v=... veya https://youtu.be/..." />
+                </div>
+
+                <div class="form-group">
                   <label>Kısa Açıklama (İsteğe Bağlı)</label>
                   <input type="text" id="gShortDesc" placeholder="Oyun hakkında 1-2 cümlelik özet..." />
                 </div>
@@ -425,6 +430,17 @@
                     <button type="button" class="btn-secondary btn-sm" id="addLinkRowBtn">+ Alternatif Link Ekle</button>
                   </div>
                   <div id="linksRowsContainer"></div>
+
+                  <div class="form-row-2" style="margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border);">
+                    <div class="form-group">
+                      <label>Bu Oyunun RAR Şifresi (İsteğe Bağlı — İstediğiniz gibi değiştirebilirsiniz)</label>
+                      <input type="text" id="gRarPass" placeholder="Örn: www.oyunindirgg.space (Şifre yoksa boş bırakın)" />
+                    </div>
+                    <div class="form-group">
+                      <label>İndirme Linklerinin Altındaki Not (İsteğe Bağlı)</label>
+                      <textarea id="gDownloadNote" rows="2" placeholder="Örn: Partları aynı klasöre çıkarıp Setup.exe'yi yönetici olarak çalıştırın..."></textarea>
+                    </div>
+                  </div>
                 </div>
 
                 <div class="form-submit-bar">

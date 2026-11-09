@@ -440,6 +440,16 @@ function hasVal(v) {
   return v !== undefined && v !== null && String(v).trim() !== '';
 }
 
+function getYoutubeEmbedUrl(rawUrl) {
+  if (!hasVal(rawUrl)) return '';
+  const str = String(rawUrl).trim();
+  const match = str.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  if (match && match[1]) {
+    return `https://www.youtube.com/embed/${match[1]}?rel=0`;
+  }
+  return '';
+}
+
 function renderAvatarHtml(username, avatarUrl, sizeClass = 'avatar-md') {
   const initial = String(username || '?').trim().charAt(0).toUpperCase() || '?';
   if (hasVal(avatarUrl)) {
@@ -812,6 +822,8 @@ function renderGameDetail(gameId) {
 
   const validLinks = (g.links || []).filter(l => l && hasVal(l.url));
   const hasTopBadges = hasVal(g.category) || hasVal(g.version);
+  const ytEmbedUrl = getYoutubeEmbedUrl(g.youtubeUrl);
+  const gameRarPass = g.rarPassword !== undefined ? g.rarPassword : (state.settings.rarPassword || '');
 
   const detailContainer = document.getElementById('detailView');
   if (!detailContainer) return;
@@ -864,6 +876,21 @@ function renderGameDetail(gameId) {
           </section>
         ` : '')}
 
+        ${hasVal(ytEmbedUrl) ? `
+          <section class="detail-section">
+            <h3>Tanıtım & Oynanış Videosu</h3>
+            <div class="video-embed-wrap">
+              <iframe
+                src="${escapeHtml(ytEmbedUrl)}"
+                title="${escapeHtml(g.title)} Video"
+                frameborder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowfullscreen>
+              </iframe>
+            </div>
+          </section>
+        ` : ''}
+
         ${hasAnySysReq ? `
           <section class="detail-section">
             <h3>Sistem Gereksinimleri</h3>
@@ -902,10 +929,10 @@ function renderGameDetail(gameId) {
                   <h3 style="border:none;padding:0;margin:0;color:#fff;">İndirme Linkleri</h3>
                   <p style="font-size:0.8rem;color:var(--text-muted);margin-top:2px;">Aşağıdaki bağlantılardan oyunu indirebilirsiniz.</p>
                 </div>
-                ${hasVal(state.settings.rarPassword) ? `
-                  <button type="button" class="rar-badge" onclick="copyRarPassword()">
+                ${hasVal(gameRarPass) ? `
+                  <button type="button" class="rar-badge" onclick="copyRarPassword('${escapeHtml(gameRarPass)}')">
                     <span>RAR Şifresi:</span>
-                    <strong>${escapeHtml(state.settings.rarPassword)}</strong>
+                    <strong>${escapeHtml(gameRarPass)}</strong>
                     <small class="copy-pill">Kopyala</small>
                   </button>
                 ` : ''}
@@ -919,6 +946,13 @@ function renderGameDetail(gameId) {
                   </a>
                 `).join('')}
               </div>
+
+              ${hasVal(g.downloadNote) ? `
+                <div class="download-note-box">
+                  <strong>📌 Not:</strong>
+                  <span>${escapeHtml(g.downloadNote)}</span>
+                </div>
+              ` : ''}
 
               <div class="dl-hub-footer" style="justify-content:flex-end;">
                 <button type="button" class="btn-broken" onclick="reportBrokenLink('${escapeHtml(g.id)}', '${escapeHtml(g.title)}')">Kırık Link Bildir</button>
@@ -1232,6 +1266,12 @@ function resetGameForm() {
   if (saveBtn) saveBtn.textContent = 'Oyunu Sitede Yayınla';
   if (cancelBtn) cancelBtn.classList.add('hidden');
   if (form) form.reset();
+  const rarInput = document.getElementById('gRarPass');
+  if (rarInput) rarInput.value = state.settings.rarPassword || 'www.oyunindirgg.space';
+  const ytInput = document.getElementById('gYoutubeUrl');
+  if (ytInput) ytInput.value = '';
+  const dlNoteInput = document.getElementById('gDownloadNote');
+  if (dlNoteInput) dlNoteInput.value = '';
   if (linksWrap) {
     linksWrap.innerHTML = '';
     addLinkEditorRow({ type: 'drive', label: 'Google Drive Tek Link İndir', url: '' });
@@ -1259,6 +1299,12 @@ function startEditGame(gameId) {
   document.getElementById('gFeatured').checked = Boolean(g.featured);
   document.getElementById('gCover').value = g.cover || '';
   document.getElementById('gScreenshots').value = Array.isArray(g.screenshots) ? g.screenshots.join('\n') : '';
+  const ytEl = document.getElementById('gYoutubeUrl');
+  if (ytEl) ytEl.value = g.youtubeUrl || '';
+  const rarEl = document.getElementById('gRarPass');
+  if (rarEl) rarEl.value = g.rarPassword !== undefined ? g.rarPassword : (state.settings.rarPassword || 'www.oyunindirgg.space');
+  const dlNoteEl = document.getElementById('gDownloadNote');
+  if (dlNoteEl) dlNoteEl.value = g.downloadNote || '';
   document.getElementById('gShortDesc').value = g.shortDesc || '';
   document.getElementById('gDescription').value = g.description || '';
   document.getElementById('gInstallNotes').value = g.installNotes || '';
@@ -1668,8 +1714,8 @@ function setCategoryFilter(cat) {
   renderSidebar();
 }
 
-function copyRarPassword() {
-  const pass = state.settings.rarPassword || 'www.oyunindirgg.space';
+function copyRarPassword(customPass) {
+  const pass = customPass || state.settings.rarPassword || 'www.oyunindirgg.space';
   navigator.clipboard?.writeText(pass);
   showToast(`RAR Şifresi kopyalandı: ${pass}`);
 }
@@ -1898,6 +1944,9 @@ document.addEventListener('DOMContentLoaded', () => {
       tags: document.getElementById('gTags').value,
       featured: document.getElementById('gFeatured').checked,
       cover: document.getElementById('gCover').value,
+      youtubeUrl: document.getElementById('gYoutubeUrl')?.value || '',
+      rarPassword: document.getElementById('gRarPass')?.value ?? '',
+      downloadNote: document.getElementById('gDownloadNote')?.value || '',
       screenshots: document.getElementById('gScreenshots').value.split('\n').map(s => s.trim()).filter(Boolean),
       shortDesc: document.getElementById('gShortDesc').value,
       description: document.getElementById('gDescription').value,

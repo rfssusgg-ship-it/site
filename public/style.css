@@ -1157,6 +1157,28 @@ button, input, select, textarea {
   object-fit: cover;
 }
 
+/* YOUTUBE VİDEO OYNATICI */
+.video-embed-wrap {
+  position: relative;
+  width: 100%;
+  padding-bottom: 56.25%;
+  height: 0;
+  overflow: hidden;
+  border-radius: 8px;
+  border: 1px solid var(--red-border);
+  background: #060103;
+  box-shadow: 0 0 24px rgba(212, 20, 58, 0.22);
+}
+
+.video-embed-wrap iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
 /* KURULUM KUTUSU */
 .install-box {
   background: var(--bg-card);
@@ -1191,6 +1213,28 @@ button, input, select, textarea {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 10px;
+}
+
+.download-note-box {
+  margin-top: 12px;
+  padding: 11px 14px;
+  background: rgba(10, 2, 5, 0.78);
+  border: 1px solid rgba(212, 20, 58, 0.38);
+  border-left: 3px solid var(--red);
+  border-radius: 6px;
+  font-size: 0.84rem;
+  color: #f9ecef;
+  line-height: 1.5;
+  white-space: pre-line;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.download-note-box strong {
+  color: #ff4d6d;
+  font-size: 0.8rem;
+  letter-spacing: 0.3px;
 }
 
 .dl-btn {
