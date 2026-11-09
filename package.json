@@ -1,0 +1,9 @@
+{
+  "name": "oyunindirgg-com-tr",
+  "version": "1.0.0",
+  "description": "OyunIndirGG.com.tr - Full Oyun İndirme ve Arşiv Platformu",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  }
+}

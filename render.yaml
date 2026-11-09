@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: oyunindirgg-com-tr
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
