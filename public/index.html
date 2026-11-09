@@ -169,8 +169,11 @@
 
           <div id="requestFormArea"></div>
 
-          <div class="req-list-wrap">
-            <h3>Gelen Oyun İstekleri</h3>
+          <div class="req-list-wrap hidden" id="reqListWrap">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+              <h3 style="margin:0;">Gelen Oyun İstekleri <span class="badge-admin" style="font-size:0.7rem;margin-left:6px;">Sadece Admin</span></h3>
+              <span style="font-size:0.78rem;color:var(--text-muted);" id="reqAdminListCount"></span>
+            </div>
             <div id="requestsListContainer" class="req-list"></div>
           </div>
         </div>

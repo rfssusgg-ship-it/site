@@ -525,7 +525,15 @@ function applyHeaderUI() {
   if (topRar) topRar.textContent = rarPass;
   if (sideRar) sideRar.textContent = rarPass;
   if (slogan) slogan.textContent = state.settings.siteSlogan || '';
-  if (reqBubble) reqBubble.textContent = state.requests.filter(r => r.status === 'Bekliyor').length;
+  if (reqBubble) {
+    if (isAdmin()) {
+      const pending = (state.requests || []).filter(r => r.status === 'Bekliyor').length;
+      reqBubble.textContent = pending;
+      reqBubble.style.display = pending > 0 ? 'inline-block' : 'none';
+    } else {
+      reqBubble.style.display = 'none';
+    }
+  }
 
   const guestBox = document.getElementById('guestAuthBox');
   const userBox = document.getElementById('userAuthBox');
@@ -1121,22 +1129,27 @@ async function deleteComment(commentId) {
 /* 5. OYUN İSTEK BÖLÜMÜ */
 function renderRequestsView() {
   const formArea = document.getElementById('requestFormArea');
+  const listWrap = document.getElementById('reqListWrap');
   if (!formArea) return;
+
   if (state.currentUser) {
     formArea.innerHTML = `
       <form id="requestGameForm" class="req-form" onsubmit="submitGameRequest(event)">
         <div class="form-row-2">
           <div class="form-group">
             <label>İstediğiniz Oyun Adı *</label>
-            <input type="text" id="reqGameName" required placeholder="Örn: Ghost of Tsushima..." />
+            <input type="text" id="reqGameName" required placeholder="Örn: Ghost of Tsushima, GTA 6..." />
           </div>
           <div class="form-group">
             <label>Notunuz (İsteğe Bağlı)</label>
-            <input type="text" id="reqGameNote" placeholder="Varsa sürüm veya link tercihiniz..." />
+            <input type="text" id="reqGameNote" placeholder="Varsa sürüm, DLC veya link tercihiniz..." />
           </div>
         </div>
-        <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-top:8px;">
           <button type="submit" class="btn-primary">İsteği Gönder</button>
+          <span style="font-size:0.8rem;color:var(--text-muted);display:flex;align-items:center;gap:6px;">
+            🔒 İstekleriniz gizlidir ve yalnızca site yöneticisi (admin) tarafından incelenir.
+          </span>
         </div>
       </form>
     `;
@@ -1152,12 +1165,24 @@ function renderRequestsView() {
     `;
   }
 
-  const wrap = document.getElementById('requestsListContainer');
-  if (!wrap) return;
-  if (!state.requests.length) {
-    wrap.innerHTML = `<p style="color:var(--text-muted);">Henüz oyun isteği yapılmamış.</p>`;
+  // İstek listesini SADECE admin görebilir
+  if (!isAdmin()) {
+    if (listWrap) listWrap.classList.add('hidden');
     return;
   }
+
+  if (listWrap) listWrap.classList.remove('hidden');
+  const countEl = document.getElementById('reqAdminListCount');
+  if (countEl) countEl.textContent = `${state.requests.length} İstek Kayıtlı`;
+
+  const wrap = document.getElementById('requestsListContainer');
+  if (!wrap) return;
+
+  if (!state.requests.length) {
+    wrap.innerHTML = `<p style="color:var(--text-muted);text-align:center;padding:16px;">Henüz bekleyen oyun isteği bulunmuyor.</p>`;
+    return;
+  }
+
   wrap.innerHTML = state.requests.map(r => `
     <div class="req-item">
       <div>
@@ -1167,10 +1192,8 @@ function renderRequestsView() {
       </div>
       <div style="display:flex;align-items:center;gap:8px;">
         <span class="req-status ${r.status === 'Eklendi' ? 'done' : 'pending'}">${escapeHtml(r.status)}</span>
-        ${isAdmin() ? `
-          <button type="button" class="btn-secondary btn-sm" onclick="updateRequestStatus('${escapeHtml(r.id)}', 'Eklendi')">Eklendi İşaretle</button>
-          <button type="button" class="btn-danger btn-sm" onclick="updateRequestStatus('${escapeHtml(r.id)}', 'delete')">Sil</button>
-        ` : ''}
+        <button type="button" class="btn-secondary btn-sm" onclick="updateRequestStatus('${escapeHtml(r.id)}', 'Eklendi')">Eklendi İşaretle</button>
+        <button type="button" class="btn-danger btn-sm" onclick="updateRequestStatus('${escapeHtml(r.id)}', 'delete')">Sil</button>
       </div>
     </div>
   `).join('');
@@ -1178,17 +1201,23 @@ function renderRequestsView() {
 
 async function submitGameRequest(e) {
   e.preventDefault();
-  const gameName = document.getElementById('reqGameName').value;
-  const note = document.getElementById('reqGameNote').value;
+  const nameInput = document.getElementById('reqGameName');
+  const noteInput = document.getElementById('reqGameNote');
+  const gameName = nameInput ? nameInput.value : '';
+  const note = noteInput ? noteInput.value : '';
   try {
     const res = await api('/api/requests', {
       method: 'POST',
       body: JSON.stringify({ gameName, note })
     });
-    state.requests = res.requests;
+    if (nameInput) nameInput.value = '';
+    if (noteInput) noteInput.value = '';
+    if (isAdmin()) {
+      state.requests = res.requests || [];
+    }
     applyHeaderUI();
     renderRequestsView();
-    showToast('Oyun isteğiniz gönderildi.');
+    showToast('Oyun isteğiniz yöneticiye iletildi!');
   } catch (err) {
     showToast(err.message);
   }

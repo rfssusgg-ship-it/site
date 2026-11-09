@@ -293,7 +293,7 @@ const server = http.createServer(async (req, res) => {
         settings: db.settings,
         games: db.games,
         comments: enrichedComments,
-        requests: db.requests,
+        requests: isAdmin ? db.requests : [],
         brokenReports: isAdmin ? db.brokenReports : [],
         usersCount: isAdmin ? db.users.length : undefined,
         users: isAdmin
@@ -667,7 +667,7 @@ const server = http.createServer(async (req, res) => {
       };
       db.requests.unshift(reqItem);
       writeDB(db);
-      return sendJSON(res, 200, { ok: true, requests: db.requests });
+      return sendJSON(res, 200, { ok: true, requests: currentUser.role === 'admin' ? db.requests : [] });
     }
 
     if (pathname.startsWith('/api/requests/') && method === 'POST') {
