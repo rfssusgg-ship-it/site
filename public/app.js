@@ -417,15 +417,9 @@ function initMusicPlayer() {
     minBtn.textContent = isHidden ? '+' : '−';
   });
 
-  loadTrack(0, true);
-
-  const unlockAudio = () => {
-    if (audio.paused && audio.currentTime === 0) {
-      audio.play().then(() => updatePlayUI(true)).catch(() => {});
-    }
-    document.removeEventListener('click', unlockAudio);
-  };
-  document.addEventListener('click', unlockAudio);
+  // Site açıldığında müzik duraklatılmış olarak yüklenir; ziyaretçi isterse Play ile başlatır.
+  loadTrack(0, false);
+  updatePlayUI(false);
 }
 
 function escapeHtml(str) {
@@ -1092,14 +1086,34 @@ function renderGameDetail(gameId) {
   `;
 }
 
+function getBrokenClientId() {
+  let id = localStorage.getItem('oig_client_id');
+  if (!id) {
+    id = (crypto.randomUUID ? crypto.randomUUID() : 'c' + Date.now() + Math.random().toString(36).slice(2));
+    localStorage.setItem('oig_client_id', id);
+  }
+  return id;
+}
+
 async function reportBrokenLink(gameId, gameTitle) {
+  const reported = JSON.parse(localStorage.getItem('oig_broken_reported') || '[]');
+  if (reported.includes(gameId)) {
+    showToast('Bu oyun için zaten kırık link bildiriminde bulundunuz.');
+    return;
+  }
   try {
     await api('/api/broken', {
       method: 'POST',
-      body: JSON.stringify({ gameId, gameTitle })
+      body: JSON.stringify({ gameId, gameTitle, clientId: getBrokenClientId() })
     });
+    reported.push(gameId);
+    localStorage.setItem('oig_broken_reported', JSON.stringify(reported));
     showToast('Kırık link bildirimi iletildi.');
   } catch (err) {
+    if (/zaten/i.test(err.message) && !reported.includes(gameId)) {
+      reported.push(gameId);
+      localStorage.setItem('oig_broken_reported', JSON.stringify(reported));
+    }
     showToast(err.message);
   }
 }
@@ -1581,11 +1595,16 @@ function renderAdminDashboard() {
     if (!state.brokenReports || state.brokenReports.length === 0) {
       brokenWrap.innerHTML = `<p style="color:var(--text-muted);margin-top:6px;">Kırık link bildirimi yok.</p>`;
     } else {
-      brokenWrap.innerHTML = state.brokenReports.map(b => `
+      const clearAllBtn = `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
+          <span style="font-size:0.82rem;color:var(--text-muted);">Toplam ${state.brokenReports.length} bildirim</span>
+          <button type="button" class="btn-danger btn-sm" onclick="clearAllBrokenReports()">🗑️ Hepsini Sil</button>
+        </div>`;
+      brokenWrap.innerHTML = clearAllBtn + state.brokenReports.map(b => `
         <div class="req-item" style="margin-top:8px;">
           <div>
             <strong>${escapeHtml(b.gameTitle)}</strong>
-            <span style="font-size:0.76rem;color:var(--text-muted);margin-left:8px;">${formatDate(b.createdAt)}</span>
+            <span style="font-size:0.76rem;color:var(--text-muted);margin-left:8px;">${escapeHtml(b.reportedBy || 'Misafir')} • ${formatDate(b.createdAt)}</span>
           </div>
           <div style="display:flex;gap:8px;">
             <button type="button" class="btn-edit-quick" onclick="startEditGame('${escapeHtml(b.gameId)}')">Linkleri Güncelle</button>
@@ -1694,6 +1713,19 @@ async function dismissBrokenReport(id) {
     const res = await api(`/api/broken/${encodeURIComponent(id)}`, { method: 'DELETE' });
     state.brokenReports = res.brokenReports;
     renderAdminDashboard();
+  } catch (err) {
+    showToast(err.message);
+  }
+}
+
+async function clearAllBrokenReports() {
+  if (!state.brokenReports || state.brokenReports.length === 0) return;
+  if (!confirm(`${state.brokenReports.length} kırık link bildiriminin hepsi silinsin mi?`)) return;
+  try {
+    const res = await api('/api/broken', { method: 'DELETE' });
+    state.brokenReports = res.brokenReports || [];
+    renderAdminDashboard();
+    showToast('Tüm kırık link bildirimleri silindi.');
   } catch (err) {
     showToast(err.message);
   }

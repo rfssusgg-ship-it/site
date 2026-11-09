@@ -708,14 +708,47 @@ const server = http.createServer(async (req, res) => {
     if (pathname === '/api/broken' && method === 'POST') {
       const body = await parseBody(req);
       const db = readDB();
+      const gameId = String(body.gameId || '').trim();
+      if (!gameId) return sendJSON(res, 400, { error: 'Geçersiz oyun.' });
+
+      // Bildirimi yapan kişiyi belirle: üye ise kullanıcı ID, değilse IP + tarayıcı kimliği
+      const currentUser = getCurrentUser(req, db);
+      const ip = String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
+      const clientId = String(body.clientId || '').slice(0, 64);
+      const reporterKeys = [];
+      if (currentUser) reporterKeys.push('u:' + currentUser.id);
+      if (ip) reporterKeys.push('ip:' + ip);
+      if (clientId) reporterKeys.push('c:' + clientId);
+
+      const alreadyReported = db.brokenReports.some(b =>
+        b.gameId === gameId &&
+        Array.isArray(b.reporterKeys) &&
+        b.reporterKeys.some(k => reporterKeys.includes(k))
+      );
+      if (alreadyReported) {
+        return sendJSON(res, 409, { error: 'Bu oyun için zaten kırık link bildiriminde bulundunuz.' });
+      }
+
       db.brokenReports.unshift({
-        id: 'br-' + Date.now(),
-        gameId: body.gameId,
+        id: 'br-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7),
+        gameId,
         gameTitle: body.gameTitle,
+        reportedBy: currentUser ? currentUser.username : 'Misafir',
+        reporterKeys,
         createdAt: new Date().toISOString()
       });
       writeDB(db);
       return sendJSON(res, 200, { ok: true });
+    }
+
+    // Tüm kırık link bildirimlerini sil (Admin)
+    if (pathname === '/api/broken' && method === 'DELETE') {
+      const db = readDB();
+      const currentUser = getCurrentUser(req, db);
+      if (!currentUser || currentUser.role !== 'admin') return sendJSON(res, 403, { error: 'Yetkisiz işlem' });
+      db.brokenReports = [];
+      writeDB(db);
+      return sendJSON(res, 200, { ok: true, brokenReports: [] });
     }
 
     if (pathname.startsWith('/api/broken/') && method === 'DELETE') {
