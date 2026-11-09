@@ -648,7 +648,7 @@ async function restoreOnStartup() {
 
   // 1) GitHub backup-db dalındaki 10 dakikalık kalıcı yedeği birleştir
   try {
-    const res = await fetch('https://raw.githubusercontent.com/rfssusgg-ship-it/site/backup-db/data/db.json?t=' + Date.now(), {
+    const res = await fetch('https://raw.githubusercontent.com/rfssusgg-ship-it/site/refs/heads/backup-db/data/db.json?t=' + Date.now(), {
       signal: AbortSignal.timeout(10000)
     });
     if (res.ok) {
