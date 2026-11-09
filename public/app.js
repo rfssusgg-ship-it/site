@@ -272,9 +272,10 @@ function initMusicPlayer() {
 
   if (!audio || !playerEl) return;
 
-  let userTargetVolume = 0.7;
+  let userTargetVolume = 0.2;
   let fadeTimer = null;
   audio.volume = userTargetVolume;
+  if (volSlider) volSlider.value = String(userTargetVolume);
 
   function applyFadeEnvelope() {
     if (audio.muted) return;
