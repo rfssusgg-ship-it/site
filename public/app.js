@@ -541,13 +541,11 @@ async function bootstrap() {
 
 function applyHeaderUI() {
   const rarPass = state.settings.rarPassword || 'www.oyunindirgg.space';
-  const topAnn = document.getElementById('topAnnouncement');
   const topRar = document.getElementById('topRarPass');
   const sideRar = document.getElementById('sidebarRarText');
   const slogan = document.getElementById('siteSloganText');
   const reqBubble = document.getElementById('reqCountBubble');
 
-  if (topAnn) topAnn.textContent = state.settings.announcement || '';
   if (topRar) topRar.textContent = rarPass;
   if (sideRar) sideRar.textContent = rarPass;
   if (slogan) slogan.textContent = state.settings.siteSlogan || '';
@@ -612,10 +610,16 @@ function renderShowcase() {
   }
 
   section.classList.remove('hidden');
-  grid.innerHTML = featuredGames.map(g => `
+  grid.innerHTML = featuredGames.map(g => {
+    const pos = g.coverPosition || '50% 50%';
+    const fit = g.coverFit || 'cover';
+    const scale = (g.coverScale && Number(g.coverScale) !== 1) ? `transform:scale(${g.coverScale});` : '';
+    const styleAttr = `object-position:${escapeHtml(pos)}; object-fit:${escapeHtml(fit)}; ${scale}`;
+
+    return `
     <article class="showcase-card" onclick="navigateToGame('${escapeHtml(g.id)}')">
       ${hasVal(g.cover)
-        ? `<img src="${escapeHtml(g.cover)}" alt="${escapeHtml(g.title)}" loading="lazy" />`
+        ? `<img src="${escapeHtml(g.cover)}" alt="${escapeHtml(g.title)}" loading="lazy" style="${styleAttr}" />`
         : `<div class="no-cover-box">${escapeHtml(g.title)}</div>`
       }
       <div class="showcase-overlay">
@@ -629,7 +633,8 @@ function renderShowcase() {
         </div>
       </div>
     </article>
-  `).join('');
+    `;
+  }).join('');
 }
 
 /* 2. ANA OYUN LİSTESİ */
@@ -713,11 +718,16 @@ function renderGameFeed() {
     const summaryText = hasVal(g.shortDesc) ? g.shortDesc : (hasVal(g.description) ? g.description : '');
     const hasTopBadges = hasVal(g.category) || hasVal(g.version) || hasVal(g.repack);
 
+    const pos = g.coverPosition || '50% 50%';
+    const fit = g.coverFit || 'cover';
+    const scale = (g.coverScale && Number(g.coverScale) !== 1) ? `transform:scale(${g.coverScale});` : '';
+    const styleAttr = `object-position:${escapeHtml(pos)}; object-fit:${escapeHtml(fit)}; ${scale}`;
+
     return `
       <article class="game-card">
         <div class="game-card-thumb" onclick="navigateToGame('${escapeHtml(g.id)}')">
           ${hasVal(g.cover)
-            ? `<img src="${escapeHtml(g.cover)}" alt="${escapeHtml(g.title)}" loading="lazy" />`
+            ? `<img src="${escapeHtml(g.cover)}" alt="${escapeHtml(g.title)}" loading="lazy" style="${styleAttr}" />`
             : `<div class="no-cover-box">${escapeHtml(g.title)}</div>`
           }
           ${hasVal(g.language) ? `<span class="thumb-ribbon">${escapeHtml(g.language)}</span>` : ''}
@@ -1368,6 +1378,176 @@ function removeScreenshotPreview(indexToRemove) {
   }
 }
 
+function updateCoverLivePreview() {
+  const coverUrl = document.getElementById('gCover')?.value?.trim() || '';
+  const title = document.getElementById('gTitle')?.value?.trim() || 'Oyun Başlığı';
+  const size = document.getElementById('gSize')?.value?.trim() || 'BOYUT';
+
+  const xSlider = document.getElementById('coverPosX');
+  const ySlider = document.getElementById('coverPosY');
+  const scaleSlider = document.getElementById('coverScale');
+  const fitSelect = document.getElementById('coverFit');
+
+  const posX = xSlider ? Number(xSlider.value) : 50;
+  const posY = ySlider ? Number(ySlider.value) : 50;
+  const scale = scaleSlider ? Number(scaleSlider.value) : 1;
+  const fit = fitSelect ? fitSelect.value : 'cover';
+
+  const posStr = `${posX}% ${posY}%`;
+  const xValEl = document.getElementById('coverPosXVal');
+  const yValEl = document.getElementById('coverPosYVal');
+  const scaleValEl = document.getElementById('coverScaleVal');
+
+  if (xValEl) xValEl.textContent = `${posX}%`;
+  if (yValEl) yValEl.textContent = `${posY}%`;
+  if (scaleValEl) scaleValEl.textContent = `${scale.toFixed(1)}x`;
+
+  const posHidden = document.getElementById('gCoverPosition');
+  const scaleHidden = document.getElementById('gCoverScale');
+  const fitHidden = document.getElementById('gCoverFit');
+  if (posHidden) posHidden.value = posStr;
+  if (scaleHidden) scaleHidden.value = String(scale);
+  if (fitHidden) fitHidden.value = fit;
+
+  const imgEl = document.getElementById('showcaseLiveImg');
+  const placeholderEl = document.getElementById('showcaseLivePlaceholder');
+  const overlayEl = document.getElementById('showcaseLiveOverlay');
+  const titleEl = document.getElementById('showcaseLiveTitle');
+  const sizeEl = document.getElementById('showcaseLiveSize');
+
+  if (titleEl) titleEl.textContent = title;
+  if (sizeEl) sizeEl.textContent = size;
+
+  if (coverUrl && imgEl) {
+    imgEl.src = coverUrl;
+    imgEl.style.display = 'block';
+    imgEl.style.objectPosition = posStr;
+    imgEl.style.objectFit = fit;
+    imgEl.style.transform = scale !== 1 ? `scale(${scale})` : 'none';
+    if (placeholderEl) placeholderEl.style.display = 'none';
+    if (overlayEl) overlayEl.style.display = 'flex';
+  } else {
+    if (imgEl) imgEl.style.display = 'none';
+    if (placeholderEl) placeholderEl.style.display = 'flex';
+    if (overlayEl) overlayEl.style.display = 'none';
+  }
+}
+
+function setCoverPosPreset(preset) {
+  const xSlider = document.getElementById('coverPosX');
+  const ySlider = document.getElementById('coverPosY');
+  if (!xSlider || !ySlider) return;
+
+  switch (preset) {
+    case 'top':
+      xSlider.value = 50;
+      ySlider.value = 0;
+      break;
+    case 'center':
+      xSlider.value = 50;
+      ySlider.value = 50;
+      break;
+    case 'bottom':
+      xSlider.value = 50;
+      ySlider.value = 100;
+      break;
+    case 'left':
+      xSlider.value = 0;
+      ySlider.value = 50;
+      break;
+    case 'right':
+      xSlider.value = 100;
+      ySlider.value = 50;
+      break;
+  }
+  updateCoverLivePreview();
+}
+
+function resetCoverPos() {
+  const xSlider = document.getElementById('coverPosX');
+  const ySlider = document.getElementById('coverPosY');
+  const scaleSlider = document.getElementById('coverScale');
+  const fitSelect = document.getElementById('coverFit');
+
+  if (xSlider) xSlider.value = 50;
+  if (ySlider) ySlider.value = 50;
+  if (scaleSlider) scaleSlider.value = 1;
+  if (fitSelect) fitSelect.value = 'cover';
+
+  updateCoverLivePreview();
+}
+
+function initCoverPositionDrag() {
+  const card = document.getElementById('showcaseLiveCard');
+  if (!card) return;
+
+  let isDragging = false;
+  let startX = 0, startY = 0;
+  let initialPosX = 50, initialPosY = 50;
+
+  const onStart = (clientX, clientY) => {
+    const coverUrl = document.getElementById('gCover')?.value?.trim();
+    if (!coverUrl) return;
+    isDragging = true;
+    startX = clientX;
+    startY = clientY;
+    const xSlider = document.getElementById('coverPosX');
+    const ySlider = document.getElementById('coverPosY');
+    initialPosX = xSlider ? Number(xSlider.value) : 50;
+    initialPosY = ySlider ? Number(ySlider.value) : 50;
+    card.style.cursor = 'grabbing';
+  };
+
+  const onMove = (clientX, clientY) => {
+    if (!isDragging) return;
+    const rect = card.getBoundingClientRect();
+    const deltaX = clientX - startX;
+    const deltaY = clientY - startY;
+
+    // Ters yönde görsel kaydırma (kullanıcı resmi yukarı çektikçe Y artar)
+    const pctDeltaX = -(deltaX / rect.width) * 100;
+    const pctDeltaY = -(deltaY / rect.height) * 100;
+
+    let newX = Math.round(Math.max(0, Math.min(100, initialPosX + pctDeltaX)));
+    let newY = Math.round(Math.max(0, Math.min(100, initialPosY + pctDeltaY)));
+
+    const xSlider = document.getElementById('coverPosX');
+    const ySlider = document.getElementById('coverPosY');
+    if (xSlider) xSlider.value = newX;
+    if (ySlider) ySlider.value = newY;
+
+    updateCoverLivePreview();
+  };
+
+  const onEnd = () => {
+    if (!isDragging) return;
+    isDragging = false;
+    card.style.cursor = 'grab';
+  };
+
+  card.addEventListener('mousedown', e => {
+    e.preventDefault();
+    onStart(e.clientX, e.clientY);
+  });
+  window.addEventListener('mousemove', e => {
+    if (isDragging) onMove(e.clientX, e.clientY);
+  });
+  window.addEventListener('mouseup', onEnd);
+
+  // Mobil & Dokunmatik ekran desteği
+  card.addEventListener('touchstart', e => {
+    if (e.touches.length === 1) {
+      onStart(e.touches[0].clientX, e.touches[0].clientY);
+    }
+  }, { passive: true });
+  window.addEventListener('touchmove', e => {
+    if (isDragging && e.touches.length === 1) {
+      onMove(e.touches[0].clientX, e.touches[0].clientY);
+    }
+  }, { passive: true });
+  window.addEventListener('touchend', onEnd);
+}
+
 function resetGameForm() {
   const editId = document.getElementById('editGameId');
   const modeTitle = document.getElementById('formModeTitle');
@@ -1390,6 +1570,8 @@ function resetGameForm() {
   const ssInput = document.getElementById('gScreenshots');
   if (ssInput) ssInput.value = '';
   renderScreenshotsPreview();
+
+  resetCoverPos();
 
   if (linksWrap) {
     linksWrap.innerHTML = '';
@@ -1419,6 +1601,26 @@ function startEditGame(gameId) {
   document.getElementById('gCover').value = g.cover || '';
   document.getElementById('gScreenshots').value = Array.isArray(g.screenshots) ? g.screenshots.join('\n') : '';
   renderScreenshotsPreview();
+
+  // Kapak & Vitrin Görünüm/Konum Bilgilerini Yükle
+  const posParts = String(g.coverPosition || '50% 50%').split(/\s+/);
+  const posX = parseInt(posParts[0], 10) || 50;
+  const posY = parseInt(posParts[1], 10) || 50;
+  const scale = Number(g.coverScale) || 1;
+  const fit = g.coverFit || 'cover';
+
+  const xSlider = document.getElementById('coverPosX');
+  const ySlider = document.getElementById('coverPosY');
+  const scaleSlider = document.getElementById('coverScale');
+  const fitSelect = document.getElementById('coverFit');
+
+  if (xSlider) xSlider.value = posX;
+  if (ySlider) ySlider.value = posY;
+  if (scaleSlider) scaleSlider.value = scale;
+  if (fitSelect) fitSelect.value = fit;
+
+  updateCoverLivePreview();
+
   const ytEl = document.getElementById('gYoutubeUrl');
   if (ytEl) ytEl.value = g.youtubeUrl || '';
   const rarEl = document.getElementById('gRarPass');
@@ -1678,10 +1880,8 @@ function renderAdminDashboard() {
 
   const sSlogan = document.getElementById('setSlogan');
   const sRar = document.getElementById('setRarPass');
-  const sAnn = document.getElementById('setAnnouncement');
   if (sSlogan) sSlogan.value = state.settings.siteSlogan || '';
   if (sRar) sRar.value = state.settings.rarPassword || 'www.oyunindirgg.space';
-  if (sAnn) sAnn.value = state.settings.announcement || '';
 }
 
 async function deleteUserAdmin(userId) {
@@ -1906,6 +2106,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initStarfield();
   initMusicPlayer();
   resetGameForm();
+  initCoverPositionDrag();
   bootstrap();
 
   const searchInput = document.getElementById('searchInput');
@@ -2049,11 +2250,20 @@ document.addEventListener('DOMContentLoaded', () => {
         body: JSON.stringify({ dataUrl })
       });
       document.getElementById('gCover').value = res.url;
+      updateCoverLivePreview();
       showToast('Kapak resmi başarıyla yüklendi.');
     } catch (err) {
       showToast(err.message);
     }
   });
+
+  bindOn('gCover', 'input', () => updateCoverLivePreview());
+  bindOn('gTitle', 'input', () => updateCoverLivePreview());
+  bindOn('gSize', 'input', () => updateCoverLivePreview());
+  bindOn('coverPosX', 'input', () => updateCoverLivePreview());
+  bindOn('coverPosY', 'input', () => updateCoverLivePreview());
+  bindOn('coverScale', 'input', () => updateCoverLivePreview());
+  bindOn('coverFit', 'change', () => updateCoverLivePreview());
 
   bindOn('gScreenshots', 'input', () => renderScreenshotsPreview());
 
@@ -2113,6 +2323,9 @@ document.addEventListener('DOMContentLoaded', () => {
       tags: document.getElementById('gTags').value,
       featured: document.getElementById('gFeatured').checked,
       cover: document.getElementById('gCover').value,
+      coverPosition: document.getElementById('gCoverPosition')?.value || '50% 50%',
+      coverScale: Number(document.getElementById('gCoverScale')?.value) || 1,
+      coverFit: document.getElementById('gCoverFit')?.value || 'cover',
       youtubeUrl: document.getElementById('gYoutubeUrl')?.value || '',
       rarPassword: document.getElementById('gRarPass')?.value ?? '',
       downloadNote: document.getElementById('gDownloadNote')?.value || '',
@@ -2165,14 +2378,10 @@ document.addEventListener('DOMContentLoaded', () => {
         method: 'POST',
         body: JSON.stringify({
           siteSlogan: document.getElementById('setSlogan')?.value || '',
-          rarPassword: document.getElementById('setRarPass')?.value || '',
-          announcement: document.getElementById('setAnnouncement')?.value || '',
-          newAdminPass: document.getElementById('setNewAdminPass')?.value || ''
+          rarPassword: document.getElementById('setRarPass')?.value || ''
         })
       });
       state.settings = res.settings;
-      const np = document.getElementById('setNewAdminPass');
-      if (np) np.value = '';
       applyHeaderUI();
       showToast('Ayarlar kaydedildi.');
     } catch (err) {

@@ -1186,6 +1186,82 @@ button, input, select, textarea {
   object-fit: cover;
 }
 
+/* VİTRİN & KAPAK GÖRÜNÜM EDİTÖRÜ */
+.cover-position-editor {
+  grid-column: 1 / -1;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  margin-top: -4px;
+  margin-bottom: 12px;
+}
+.cover-pos-grid {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 16px;
+  align-items: start;
+}
+@media (max-width: 768px) {
+  .cover-pos-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.showcase-live-card {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--border-hover);
+  background: #0c0205;
+  cursor: grab;
+  user-select: none;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+}
+.showcase-live-card:active {
+  cursor: grabbing;
+}
+.showcase-live-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+  transition: none;
+}
+.showcase-live-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  text-align: center;
+  padding: 10px;
+}
+.cover-pos-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.cover-pos-presets button {
+  padding: 4px 9px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-main);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.cover-pos-presets button:hover {
+  border-color: var(--red);
+  color: #fff;
+  background: rgba(212, 20, 58, 0.15);
+}
+
 .screenshot-preview-remove {
   position: absolute;
   top: 2px;

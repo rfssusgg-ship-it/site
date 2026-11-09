@@ -36,16 +36,6 @@
   <!-- Hareketli Yıldız Arkaplan Efekti -->
   <canvas id="starfieldCanvas"></canvas>
 
-  <!-- Üst Bilgi Barı -->
-  <div class="topbar">
-    <div class="container topbar-inner">
-      <div class="topbar-left">
-        <span class="pulse-dot"></span>
-        <span id="topAnnouncement">Sitemizdeki tüm oyunları ücretsiz ve tam sürüm olarak indirebilirsiniz.</span>
-      </div>
-    </div>
-  </div>
-
   <!-- Ana Header / Navigasyon -->
   <header class="site-header">
     <div class="container header-inner">
@@ -415,6 +405,100 @@
                   </div>
                 </div>
 
+                <!-- Vitrin & Kartlar İçin Resim Görünüm & Konum Ayarı -->
+                <div class="cover-position-editor" id="coverPositionEditorWrap">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                    <label style="margin:0;font-weight:700;color:var(--text-bright);font-size:0.86rem;display:flex;align-items:center;gap:6px;">
+                      🖼️ Vitrinde & Kartlarda Resim Görünüm / Konum Ayarı
+                    </label>
+                    <span style="font-size:0.74rem;color:var(--text-muted);">Görselin vitrinde neresinin görüneceğini ayarlayın</span>
+                  </div>
+
+                  <div class="cover-pos-grid">
+                    <!-- Canlı 16:9 Vitrin Kartı Simülasyonu -->
+                    <div>
+                      <div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:4px;font-weight:600;display:flex;justify-content:space-between;">
+                        <span>CANLI VİTRİN KARTI:</span>
+                        <span style="color:var(--red);">16:9</span>
+                      </div>
+                      <div class="showcase-live-card" id="showcaseLiveCard" title="Resmi basılı tutup sürükleyerek konumu ayarlayabilirsiniz">
+                        <img id="showcaseLiveImg" src="" alt="Vitrin Önizleme" style="display:none;" />
+                        <div class="showcase-live-placeholder" id="showcaseLivePlaceholder">
+                          <span>Kapak resmi seçildiğinde canlı önizleme burada görünecektir</span>
+                        </div>
+                        <div class="showcase-overlay" id="showcaseLiveOverlay" style="display:none;">
+                          <div class="showcase-top-badges">
+                            <span class="sc-size" id="showcaseLiveSize">BOYUT</span>
+                          </div>
+                          <div class="showcase-bottom">
+                            <h3 id="showcaseLiveTitle" style="font-size:0.82rem;margin:0;">Oyun Başlığı</h3>
+                          </div>
+                        </div>
+                      </div>
+                      <div style="font-size:0.68rem;color:var(--text-muted);text-align:center;margin-top:5px;">
+                        💡 Resmi farenizle basılı tutup sürükleyebilirsiniz
+                      </div>
+                    </div>
+
+                    <!-- Ayar Kontrolleri -->
+                    <div style="display:flex;flex-direction:column;gap:10px;">
+                      <!-- Hızlı Konum Butonları -->
+                      <div>
+                        <label style="font-size:0.75rem;margin-bottom:4px;color:var(--text-muted);display:block;">Hızlı Konum:</label>
+                        <div class="cover-pos-presets">
+                          <button type="button" onclick="setCoverPosPreset('top')">⬆️ Üst</button>
+                          <button type="button" onclick="setCoverPosPreset('center')">🎯 Orta</button>
+                          <button type="button" onclick="setCoverPosPreset('bottom')">⬇️ Alt</button>
+                          <button type="button" onclick="setCoverPosPreset('left')">⬅️ Sol</button>
+                          <button type="button" onclick="setCoverPosPreset('right')">➡️ Sağ</button>
+                          <button type="button" onclick="resetCoverPos()">🔄 Sıfırla</button>
+                        </div>
+                      </div>
+
+                      <!-- Dikey ve Yatay Kaydırıcılar -->
+                      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                        <div>
+                          <div style="display:flex;justify-content:space-between;font-size:0.75rem;margin-bottom:2px;">
+                            <label style="margin:0;">Dikey Konum (Y):</label>
+                            <span id="coverPosYVal" style="color:var(--text-bright);font-weight:700;">50%</span>
+                          </div>
+                          <input type="range" id="coverPosY" min="0" max="100" value="50" style="width:100%;accent-color:var(--red);" />
+                        </div>
+                        <div>
+                          <div style="display:flex;justify-content:space-between;font-size:0.75rem;margin-bottom:2px;">
+                            <label style="margin:0;">Yatay Konum (X):</label>
+                            <span id="coverPosXVal" style="color:var(--text-bright);font-weight:700;">50%</span>
+                          </div>
+                          <input type="range" id="coverPosX" min="0" max="100" value="50" style="width:100%;accent-color:var(--red);" />
+                        </div>
+                      </div>
+
+                      <!-- Yakınlaştırma (Scale) ve Sığdırma (Fit) -->
+                      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                        <div>
+                          <div style="display:flex;justify-content:space-between;font-size:0.75rem;margin-bottom:2px;">
+                            <label style="margin:0;">Büyütme (Zoom):</label>
+                            <span id="coverScaleVal" style="color:var(--text-bright);font-weight:700;">1.0x</span>
+                          </div>
+                          <input type="range" id="coverScale" min="1" max="2" step="0.05" value="1" style="width:100%;accent-color:var(--red);" />
+                        </div>
+                        <div>
+                          <label style="font-size:0.75rem;margin-bottom:2px;display:block;">Sığdırma Şekli:</label>
+                          <select id="coverFit" style="width:100%;padding:5px 8px;font-size:0.78rem;background:var(--bg-input);border:1px solid var(--border);color:var(--text-main);border-radius:4px;">
+                            <option value="cover">Kırp & Doldur (Cover - Önerilen)</option>
+                            <option value="contain">Tam Sığdır (Contain - Kırpmadan)</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <!-- Gizli Alanlar (Backend Kaydı İçin) -->
+                      <input type="hidden" id="gCoverPosition" value="50% 50%" />
+                      <input type="hidden" id="gCoverScale" value="1" />
+                      <input type="hidden" id="gCoverFit" value="cover" />
+                    </div>
+                  </div>
+                </div>
+
                 <div class="form-group">
                   <label>YouTube Tanıtım / Oynanış Videosu (İsteğe Bağlı)</label>
                   <input type="text" id="gYoutubeUrl" placeholder="Örn: https://www.youtube.com/watch?v=... veya https://youtu.be/..." />
@@ -527,8 +611,8 @@
             <div class="admin-tab-content hidden" id="atab-site-settings">
               <div class="admin-section-header">
                 <div>
-                  <h2>Site & Duyuru Ayarları</h2>
-                  <p>Sitenin genel sloganını, standart RAR şifresini ve üst duyuru metnini buradan güncelleyebilirsiniz.</p>
+                  <h2>Site Ayarları</h2>
+                  <p>Sitenin genel sloganını ve standart RAR şifresini buradan güncelleyebilirsiniz.</p>
                 </div>
               </div>
               <form id="adminSettingsForm" class="admin-form">
@@ -539,14 +623,6 @@
                 <div class="form-group">
                   <label>Standart RAR Şifresi</label>
                   <input type="text" id="setRarPass" />
-                </div>
-                <div class="form-group">
-                  <label>Üst Duyuru Metni</label>
-                  <input type="text" id="setAnnouncement" />
-                </div>
-                <div class="form-group">
-                  <label>Admin Şifresini Değiştir (İsteğe Bağlı)</label>
-                  <input type="password" id="setNewAdminPass" placeholder="Yeni admin şifresi (Değiştirmek istemiyorsanız boş bırakın)..." />
                 </div>
                 <div>
                   <button type="submit" class="btn-primary">Ayarları Kaydet</button>

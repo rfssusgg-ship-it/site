@@ -248,8 +248,7 @@ const server = http.createServer(async (req, res) => {
         return sendJSON(res, 400, { error: 'Bu e-posta adresi zaten kayıtlı.' });
       }
 
-      const hasAdminAlready = db.users.some(u => u.role === 'admin');
-      const assignedRole = hasAdminAlready ? 'user' : 'admin';
+      // Yeni kayıt olan tüm kullanıcılar istisnasız 'user' rolündedir; sistemde sadece tek admin (swo) bulunabilir
       const token = crypto.randomBytes(24).toString('hex');
 
       const newUser = {
@@ -258,7 +257,7 @@ const server = http.createServer(async (req, res) => {
         email,
         avatar: '',
         passwordHash: password,
-        role: assignedRole,
+        role: 'user',
         token,
         createdAt: new Date().toISOString()
       };
@@ -416,6 +415,9 @@ const server = http.createServer(async (req, res) => {
         featured: Boolean(body.featured),
         createdAt: existingIndex > -1 ? db.games[existingIndex].createdAt : new Date().toISOString(),
         cover: String(body.cover || '').trim(),
+        coverPosition: String(body.coverPosition || '50% 50%').trim(),
+        coverScale: Number(body.coverScale) || 1,
+        coverFit: String(body.coverFit || 'cover').trim(),
         banner: String(body.banner || body.cover || '').trim(),
         youtubeUrl: String(body.youtubeUrl || '').trim(),
         rarPassword: body.rarPassword !== undefined ? String(body.rarPassword).trim() : String(db.settings?.rarPassword || 'www.oyunindirgg.space').trim(),
@@ -681,11 +683,6 @@ const server = http.createServer(async (req, res) => {
       const body = await parseBody(req);
       if (body.siteSlogan !== undefined) db.settings.siteSlogan = body.siteSlogan;
       if (body.rarPassword !== undefined) db.settings.rarPassword = body.rarPassword;
-      if (body.announcement !== undefined) db.settings.announcement = body.announcement;
-      if (body.newAdminPass && body.newAdminPass.trim().length >= 4) {
-        const adminAccount = db.users.find(u => u.id === currentUser.id);
-        if (adminAccount) adminAccount.passwordHash = body.newAdminPass.trim();
-      }
       writeDB(db);
       return sendJSON(res, 200, { ok: true, settings: db.settings });
     }
