@@ -1,15 +1,60 @@
-name: Keep OyunIndirGG Awake 24-7
+name: Keep OyunIndirGG Awake & 10-Min Auto Backup
 
 on:
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: '*/10 * * * *'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
-  ping:
+  ping-and-backup:
     runs-on: ubuntu-latest
     steps:
       - name: Ping OyunIndirGG Server
         run: |
           curl -fsS --max-time 15 https://oyunindirgg.space/api/ping || true
           curl -fsS --max-time 15 https://site-ap0j.onrender.com/api/ping || true
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check Live Site Changes & Save to backup-db Branch
+        run: |
+          git config user.name "swo"
+          git config user.email "swo@oyunindirgg.space"
+
+          # Sitedeki güncel verileri çek ve mevcut veritabanıyla birleştir
+          node -e "
+          const storage = require('./storage');
+          storage.restoreOnStartup().then(async () => {
+            await storage.checkAndSaveChanges();
+            console.log('10 dakikalık canlı kontrol tamamlandı. Oyun sayısı:', storage.readDB().games.length);
+            process.exit(0);
+          }).catch(err => {
+            console.error(err);
+            process.exit(0);
+          });
+          "
+
+          # Değişiklikleri backup-db dalına kalıcı olarak kaydet (Render'ı yeniden başlatmadan)
+          cp data/db.json /tmp/merged_db.json
+          if git show-ref --verify --quiet refs/remotes/origin/backup-db; then
+            git checkout -B backup-db origin/backup-db
+          else
+            git checkout -B backup-db
+          fi
+          cp /tmp/merged_db.json data/db.json
+
+          # _updatedAt alanı dışındaki gerçek veri farkını kontrol et
+          git add data/db.json
+          if ! git diff --cached --quiet; then
+            git commit -m "auto-backup: 10dk otomatik degisiklik kontrolu ve kaydi"
+            git push origin backup-db
+            echo "Değişiklik bulundu ve backup-db dalına kaydedildi."
+          else
+            echo "Yeni değişiklik yok, veritabanı güncel."
+          fi

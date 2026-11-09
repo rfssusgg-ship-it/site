@@ -31,11 +31,10 @@ function startKeepAliveAndSync() {
     });
   }, 3.5 * 60 * 1000);
 
-  // Her 2 saatte bir mevcut veritabanını bulutta tazele
+  // Her 10 dakikada bir sitedeki değişiklikleri kontrol et ve kalıcı olarak yedekle
   setInterval(() => {
-    const db = readDB();
-    storage.pushCloudSharded(db).catch(() => {});
-  }, 2 * 60 * 60 * 1000);
+    storage.checkAndSaveChanges().catch(() => {});
+  }, 10 * 60 * 1000);
 }
 
 function slugify(text) {

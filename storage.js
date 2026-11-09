@@ -510,6 +510,12 @@ async function pushToGitHub() {
 let saveTimer = null;
 let saveChain = Promise.resolve();
 let dirty = false;
+let lastSavedSnapshotHash = '';
+
+function computeSnapshotHash(db) {
+  const { _updatedAt, ...rest } = db || {};
+  return hashObj(rest);
+}
 
 function runSave() {
   saveChain = saveChain.then(async () => {
@@ -521,7 +527,9 @@ function runSave() {
       if (GITHUB_ENABLED) {
         await pushToGitHub();
       }
+      lastSavedSnapshotHash = computeSnapshotHash(db);
       status.lastSavedAt = new Date().toISOString();
+      status.lastCheckedAt = status.lastSavedAt;
       status.lastError = null;
       status.pending = dirty;
     } catch (err) {
@@ -530,6 +538,21 @@ function runSave() {
     }
   });
   return saveChain;
+}
+
+// Her 10 dakikada bir yapılan değişiklikleri kontrol et ve kaydedilmemiş fark varsa kaydet
+async function checkAndSaveChanges() {
+  status.lastCheckedAt = new Date().toISOString();
+  const db = readLocalDB();
+  const currentHash = computeSnapshotHash(db);
+  const hasUnsyncedGame = (db.games || []).some(g => g && g.id && syncedGameHashes.get(g.id) !== hashObj(g));
+  if (dirty || currentHash !== lastSavedSnapshotHash || hasUnsyncedGame) {
+    dirty = true;
+    await runSave();
+    console.log(`[10dk Otomatik Kayıt] Değişiklik tespit edildi ve kalıcı olarak yedeklendi (${dbStats(db)}).`);
+    return { changed: true, savedAt: status.lastSavedAt };
+  }
+  return { changed: false, checkedAt: status.lastCheckedAt };
 }
 
 function scheduleSave(delay = 1500) {
@@ -623,7 +646,21 @@ async function restoreOnStartup() {
   let base = seed;
   status.restoredFrom = ['seed'];
 
-  // 1) Parçalı Bulut Yedeklerini birleştir
+  // 1) GitHub backup-db dalındaki 10 dakikalık kalıcı yedeği birleştir
+  try {
+    const res = await fetch('https://raw.githubusercontent.com/rfssusgg-ship-it/site/backup-db/data/db.json?t=' + Date.now(), {
+      signal: AbortSignal.timeout(10000)
+    });
+    if (res.ok) {
+      const backupBranchDB = normalizeDB(await res.json());
+      if ((backupBranchDB.games || []).length > 0) {
+        base = mergeDBs(base, backupBranchDB);
+        status.restoredFrom.push('github-backup-db');
+      }
+    }
+  } catch {}
+
+  // 2) Parçalı Bulut Yedeklerini birleştir
   try {
     const cloudDB = await loadFromCloudSharded(base.games);
     if (cloudDB) {
@@ -690,6 +727,7 @@ module.exports = {
   flush,
   mergeDBs,
   pushCloudSharded,
+  checkAndSaveChanges,
   restoreOnStartup,
   startHandoffCatchUp,
   handoffAuthorized,
