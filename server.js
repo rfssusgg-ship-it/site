@@ -171,7 +171,7 @@ function parseBody(req) {
     let body = '';
     req.on('data', chunk => {
       body += chunk;
-      if (body.length > 15 * 1024 * 1024) {
+      if (body.length > 30 * 1024 * 1024) {
         reject(new Error('Dosya boyutu çok büyük'));
       }
     });

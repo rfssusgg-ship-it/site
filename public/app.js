@@ -451,6 +451,38 @@ function getYoutubeEmbedUrl(rawUrl) {
   return '';
 }
 
+function optimizeImageFile(file, maxDimension = 1400, quality = 0.85) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => resolve(reader.result);
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+        if (width > maxDimension || height > maxDimension) {
+          if (width > height) {
+            height = Math.round((height * maxDimension) / width);
+            width = maxDimension;
+          } else {
+            width = Math.round((width * maxDimension) / height);
+            height = maxDimension;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 function renderAvatarHtml(username, avatarUrl, sizeClass = 'avatar-md') {
   const initial = String(username || '?').trim().charAt(0).toUpperCase() || '?';
   if (hasVal(avatarUrl)) {
@@ -1870,26 +1902,24 @@ document.addEventListener('DOMContentLoaded', () => {
     updateProfileAvatarPreview(uname, e.target.value);
   });
 
-  bindOn('profAvatarFile', 'change', e => {
+  bindOn('profAvatarFile', 'change', async e => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async () => {
-      try {
-        const res = await api('/api/upload', {
-          method: 'POST',
-          body: JSON.stringify({ dataUrl: reader.result, kind: 'avatar' })
-        });
-        const aUrl = document.getElementById('profAvatarUrl');
-        if (aUrl) aUrl.value = res.url;
-        const uname = document.getElementById('profUsername')?.value || state.currentUser?.username || '?';
-        updateProfileAvatarPreview(uname, res.url);
-        showToast('Profil fotoğrafı yüklendi.');
-      } catch (err) {
-        showToast(err.message);
-      }
-    };
-    reader.readAsDataURL(file);
+    try {
+      showToast('Profil fotoğrafı hazırlanıyor...');
+      const dataUrl = await optimizeImageFile(file, 400, 0.85);
+      const res = await api('/api/upload', {
+        method: 'POST',
+        body: JSON.stringify({ dataUrl, kind: 'avatar' })
+      });
+      const aUrl = document.getElementById('profAvatarUrl');
+      if (aUrl) aUrl.value = res.url;
+      const uname = document.getElementById('profUsername')?.value || state.currentUser?.username || '?';
+      updateProfileAvatarPreview(uname, res.url);
+      showToast('Profil fotoğrafı başarıyla yüklendi.');
+    } catch (err) {
+      showToast(err.message);
+    }
   });
 
   bindOn('removeAvatarBtn', 'click', () => {
@@ -1975,23 +2005,21 @@ document.addEventListener('DOMContentLoaded', () => {
   bindOn('addLinkRowBtn', 'click', () => addLinkEditorRow());
   bindOn('cancelEditBtn', 'click', () => resetGameForm());
 
-  bindOn('gCoverFile', 'change', e => {
+  bindOn('gCoverFile', 'change', async e => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async () => {
-      try {
-        const res = await api('/api/upload', {
-          method: 'POST',
-          body: JSON.stringify({ dataUrl: reader.result })
-        });
-        document.getElementById('gCover').value = res.url;
-        showToast('Kapak resmi yüklendi.');
-      } catch (err) {
-        showToast(err.message);
-      }
-    };
-    reader.readAsDataURL(file);
+    try {
+      showToast('Kapak resmi optimize edilip yükleniyor...');
+      const dataUrl = await optimizeImageFile(file, 1400, 0.85);
+      const res = await api('/api/upload', {
+        method: 'POST',
+        body: JSON.stringify({ dataUrl })
+      });
+      document.getElementById('gCover').value = res.url;
+      showToast('Kapak resmi başarıyla yüklendi.');
+    } catch (err) {
+      showToast(err.message);
+    }
   });
 
   bindOn('gScreenshots', 'input', () => renderScreenshotsPreview());
@@ -2000,20 +2028,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
 
-    showToast(`${files.length} ekran görüntüsü yükleniyor...`);
+    showToast(`${files.length} ekran görüntüsü hazırlanıyor ve yükleniyor...`);
 
     const textarea = document.getElementById('gScreenshots');
     const existing = textarea ? textarea.value.split('\n').map(s => s.trim()).filter(Boolean) : [];
 
     for (const file of files) {
       try {
-        const dataUrl = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
-
+        const dataUrl = await optimizeImageFile(file, 1400, 0.84);
         const res = await api('/api/upload', {
           method: 'POST',
           body: JSON.stringify({ dataUrl })
@@ -2031,7 +2053,7 @@ document.addEventListener('DOMContentLoaded', () => {
       textarea.value = existing.join('\n');
     }
     renderScreenshotsPreview();
-    showToast(`${files.length} ekran görüntüsü başarıyla yüklendi.`);
+    showToast(`${files.length} ekran görüntüsü siteye kalıcı olarak kaydedildi.`);
     e.target.value = '';
   });
 
