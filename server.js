@@ -235,6 +235,8 @@ const MIME_TYPES = {
   '.webp': 'image/webp',
   '.svg': 'image/svg+xml',
   '.ico': 'image/x-icon',
+  '.txt': 'text/plain; charset=utf-8',
+  '.xml': 'application/xml; charset=utf-8',
   '.m4a': 'audio/mp4',
   '.mp3': 'audio/mpeg'
 };
@@ -248,6 +250,30 @@ const server = http.createServer(async (req, res) => {
     // 0. Keep-Alive Ping Uç Noktası
     if (pathname === '/api/ping' && method === 'GET') {
       return sendJSON(res, 200, { ok: true, time: Date.now() });
+    }
+
+    // Google & Arama Motorları İçin Dinamik Site Haritası (Sitemap)
+    if (pathname === '/sitemap.xml' && method === 'GET') {
+      const db = readDB();
+      const domain = 'https://oyunindirgg.space';
+      const today = new Date().toISOString().split('T')[0];
+
+      let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
+      xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
+      xml += `  <url>\n    <loc>${domain}/</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>1.0</priority>\n  </url>\n`;
+
+      (db.games || []).forEach(g => {
+        const mod = g.createdAt ? String(g.createdAt).split('T')[0] : today;
+        xml += `  <url>\n    <loc>${domain}/#/oyun/${encodeURIComponent(g.id)}</loc>\n    <lastmod>${mod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.8</priority>\n  </url>\n`;
+      });
+
+      xml += `</urlset>`;
+
+      res.writeHead(200, {
+        'Content-Type': 'application/xml; charset=utf-8',
+        'Cache-Control': 'public, max-age=3600'
+      });
+      return res.end(xml);
     }
 
     // 1. Bootstrap (Site açılış verileri)
