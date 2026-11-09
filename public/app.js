@@ -647,6 +647,7 @@ function getFilteredGames() {
     list = list.filter(g =>
       (g.category && g.category.toLowerCase() === f) ||
       (g.language && g.language.toLowerCase().includes(f)) ||
+      (g.title && g.title.toLowerCase().includes(f)) ||
       (Array.isArray(g.tags) && g.tags.some(t => t.toLowerCase().includes(f)))
     );
   }
@@ -2118,6 +2119,10 @@ document.addEventListener('DOMContentLoaded', () => {
       navigateToGame(res.game.id);
     } catch (err) {
       showToast(err.message);
+      if (String(err.message).includes('Admin')) {
+        showToast('Oturum süreniz dolmuş olabilir. Lütfen Admin olarak tekrar giriş yapın.');
+        openAuthModal('login');
+      }
     }
   });
 
@@ -2140,6 +2145,10 @@ document.addEventListener('DOMContentLoaded', () => {
       showToast('Ayarlar kaydedildi.');
     } catch (err) {
       showToast(err.message);
+      if (String(err.message).includes('Admin')) {
+        showToast('Oturum süreniz dolmuş olabilir. Lütfen Admin olarak tekrar giriş yapın.');
+        openAuthModal('login');
+      }
     }
   });
 

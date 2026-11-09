@@ -94,7 +94,22 @@ async function restoreFromCloudDB() {
 
           const userMap = new Map();
           [...(localDB.users || []), ...(cloudData.users || [])].forEach(u => {
-            if (u && u.id) userMap.set(u.id, u);
+            if (u && u.id) {
+              const existing = userMap.get(u.id);
+              if (existing) {
+                userMap.set(u.id, {
+                  ...existing,
+                  ...u,
+                  token: u.token || existing.token,
+                  tokens: Array.from(new Set([...(existing.tokens || []), ...(u.tokens || []), existing.token, u.token].filter(Boolean)))
+                });
+              } else {
+                userMap.set(u.id, {
+                  ...u,
+                  tokens: Array.from(new Set([...(u.tokens || []), u.token].filter(Boolean)))
+                });
+              }
+            }
           });
 
           const commentMap = new Map();
@@ -190,7 +205,7 @@ function parseBody(req) {
 function getCurrentUser(req, db) {
   const token = req.headers['x-auth-token'] || '';
   if (!token) return null;
-  const user = db.users.find(u => u.token === token);
+  const user = db.users.find(u => u.token === token || (Array.isArray(u.tokens) && u.tokens.includes(token)));
   if (!user) return null;
   return {
     id: user.id,
@@ -380,6 +395,7 @@ const server = http.createServer(async (req, res) => {
 
       const token = crypto.randomBytes(24).toString('hex');
       user.token = token;
+      user.tokens = Array.from(new Set([...(user.tokens || []), user.token, token].filter(Boolean)));
       writeDB(db);
 
       return sendJSON(res, 200, {
