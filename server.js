@@ -3,14 +3,13 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const storage = require('./storage');
+const { readDB, writeDB } = storage;
 
 const PORT = process.env.PORT || 3000;
-const DB_PATH = path.join(__dirname, 'data', 'db.json');
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const UPLOADS_DIR = path.join(PUBLIC_DIR, 'uploads');
 
-// Kalıcı bulut senkronizasyon kanalı (Render yeniden başlasa bile oyunları ve verileri korur)
-const CLOUD_SYNC_TOPIC = process.env.CLOUD_SYNC_TOPIC || 'oyunindirgg_cloud_store_v2_8d4f9a2c1e7b';
 const PUBLIC_URLS = [
   'https://oyunindirgg.space/api/ping',
   'https://www.oyunindirgg.space/api/ping',
@@ -21,129 +20,7 @@ if (!fs.existsSync(UPLOADS_DIR)) {
   fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 }
 
-function readDB() {
-  try {
-    const raw = fs.readFileSync(DB_PATH, 'utf-8');
-    const data = JSON.parse(raw);
-    data.users = data.users || [];
-    data.games = data.games || [];
-    data.comments = data.comments || [];
-    data.requests = data.requests || [];
-    data.brokenReports = data.brokenReports || [];
-    return data;
-  } catch (err) {
-    console.error('Veritabanı okuma hatası:', err);
-    return { settings: {}, users: [], games: [], comments: [], requests: [], brokenReports: [] };
-  }
-}
-
-async function pushCloudSnapshot(data) {
-  try {
-    const payloadObj = { ...data, _updatedAt: Date.now() };
-    const jsonStr = JSON.stringify(payloadObj);
-    if (Buffer.byteLength(jsonStr, 'utf-8') < 3500) {
-      await fetch(`https://ntfy.sh/${CLOUD_SYNC_TOPIC}`, {
-        method: 'POST',
-        body: jsonStr
-      });
-    } else {
-      await fetch(`https://ntfy.sh/${CLOUD_SYNC_TOPIC}`, {
-        method: 'PUT',
-        headers: { 'Filename': 'db.json' },
-        body: jsonStr
-      });
-    }
-  } catch (err) {
-    console.error('Bulut yedekleme uyarısı:', err.message);
-  }
-}
-
-async function restoreFromCloudDB() {
-  try {
-    const res = await fetch(`https://ntfy.sh/${CLOUD_SYNC_TOPIC}/json?poll=1&since=24h`);
-    if (!res.ok) return;
-    const text = await res.text();
-    const lines = text.trim().split('\n').filter(Boolean);
-    if (lines.length === 0) return;
-
-    for (let i = lines.length - 1; i >= 0; i--) {
-      try {
-        const evt = JSON.parse(lines[i]);
-        if (evt.event !== 'message') continue;
-
-        let cloudData = null;
-        if (evt.attachment && evt.attachment.url) {
-          const attRes = await fetch(evt.attachment.url);
-          if (attRes.ok) {
-            cloudData = await attRes.json();
-          }
-        } else if (evt.message && evt.message.startsWith('{')) {
-          cloudData = JSON.parse(evt.message);
-        }
-
-        if (cloudData && Array.isArray(cloudData.users) && Array.isArray(cloudData.games)) {
-          const localDB = readDB();
-          const deletedIds = new Set([...(localDB.deletedGameIds || []), ...(cloudData.deletedGameIds || [])]);
-
-          const gameMap = new Map();
-          [...(localDB.games || []), ...(cloudData.games || [])].forEach(g => {
-            if (g && g.id && !deletedIds.has(g.id)) {
-              gameMap.set(g.id, g);
-            }
-          });
-
-          const userMap = new Map();
-          [...(localDB.users || []), ...(cloudData.users || [])].forEach(u => {
-            if (u && u.id) {
-              const existing = userMap.get(u.id);
-              if (existing) {
-                userMap.set(u.id, {
-                  ...existing,
-                  ...u,
-                  token: u.token || existing.token,
-                  tokens: Array.from(new Set([...(existing.tokens || []), ...(u.tokens || []), existing.token, u.token].filter(Boolean)))
-                });
-              } else {
-                userMap.set(u.id, {
-                  ...u,
-                  tokens: Array.from(new Set([...(u.tokens || []), u.token].filter(Boolean)))
-                });
-              }
-            }
-          });
-
-          const commentMap = new Map();
-          [...(localDB.comments || []), ...(cloudData.comments || [])].forEach(c => {
-            if (c && c.id && !deletedIds.has(c.gameId)) commentMap.set(c.id, c);
-          });
-
-          const merged = {
-            ...localDB,
-            ...cloudData,
-            settings: { ...(localDB.settings || {}), ...(cloudData.settings || {}) },
-            users: Array.from(userMap.values()),
-            games: Array.from(gameMap.values()).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)),
-            comments: Array.from(commentMap.values()),
-            deletedGameIds: Array.from(deletedIds)
-          };
-
-          fs.writeFileSync(DB_PATH, JSON.stringify(merged, null, 2), 'utf-8');
-          console.log(`Bulut veritabanı senkronize edildi (${merged.games.length} oyun, ${merged.users.length} üye).`);
-          return;
-        }
-      } catch {}
-    }
-  } catch (err) {
-    console.error('Bulut veritabanı okuma uyarısı:', err.message);
-  }
-}
-
-function writeDB(data) {
-  data._updatedAt = Date.now();
-  fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2), 'utf-8');
-  pushCloudSnapshot(data);
-}
-
+// Veri okuma/yazma ve kalıcılık storage.js içinde (Canlı Handoff + Parçalı Bulut v3 + GitHub)
 function startKeepAliveAndSync() {
   // Her 3.5 dakikada bir dış adreslere ping atarak Render'ın uykuya geçmesini engelle
   setInterval(() => {
@@ -157,7 +34,7 @@ function startKeepAliveAndSync() {
   // Her 2 saatte bir mevcut veritabanını bulutta tazele
   setInterval(() => {
     const db = readDB();
-    pushCloudSnapshot(db);
+    storage.pushCloudSharded(db).catch(() => {});
   }, 2 * 60 * 60 * 1000);
 }
 
@@ -264,7 +141,28 @@ const server = http.createServer(async (req, res) => {
   try {
     // 0. Keep-Alive Ping Uç Noktası
     if (pathname === '/api/ping' && method === 'GET') {
-      return sendJSON(res, 200, { ok: true, time: Date.now() });
+      return sendJSON(res, 200, { ok: true, time: Date.now(), instanceId: storage.status.instanceId });
+    }
+
+    // 0b. Deploy Devir Teslimi (Handoff — yalnızca sunucu anahtarıyla erişilebilir)
+    if (pathname === '/api/_handoff' && method === 'GET') {
+      if (!storage.handoffAuthorized(req)) {
+        return sendJSON(res, 403, { error: 'Yetkisiz' });
+      }
+      return sendJSON(res, 200, storage.handoffPayload());
+    }
+
+    // 0c. Dışsallaştırılmış Görseller (/media/<ad>)
+    if (pathname.startsWith('/media/') && method === 'GET') {
+      const name = decodeURIComponent(pathname.slice('/media/'.length));
+      const mediaFile = await storage.getMediaFile(name);
+      if (!mediaFile) return sendJSON(res, 404, { error: 'Görsel bulunamadı' });
+      const ext = path.extname(mediaFile).toLowerCase();
+      res.writeHead(200, {
+        'Content-Type': MIME_TYPES[ext] || 'image/jpeg',
+        'Cache-Control': 'public, max-age=31536000, immutable'
+      });
+      return fs.createReadStream(mediaFile).pipe(res);
     }
 
     // Google & Arama Motorları İçin Dinamik Site Haritası (Sitemap)
@@ -836,10 +734,15 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-// Başlangıçta buluttaki son veritabanını geri yükle, ardından sunucuyu ve Keep-Alive sistemini başlat
-restoreFromCloudDB().finally(() => {
+// Başlangıçta buluttaki ve önceki sunucudaki veritabanını geri yükle, ardından sunucuyu başlat
+storage.restoreOnStartup().finally(() => {
   server.listen(PORT, () => {
     console.log(`OyunIndir.gg sunucusu çalışıyor: http://localhost:${PORT}`);
     startKeepAliveAndSync();
+    storage.startHandoffCatchUp();
   });
+});
+
+process.on('SIGTERM', () => {
+  storage.flush().finally(() => process.exit(0));
 });
