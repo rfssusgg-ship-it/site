@@ -276,6 +276,12 @@ const server = http.createServer(async (req, res) => {
       return res.end(xml);
     }
 
+    // Google Search Console Doğrulama
+    if (pathname === '/googleed8f3777dd692581.html' && method === 'GET') {
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+      return res.end('google-site-verification: googleed8f3777dd692581.html');
+    }
+
     // 1. Bootstrap (Site açılış verileri)
     if (pathname === '/api/bootstrap' && method === 'GET') {
       const db = readDB();
