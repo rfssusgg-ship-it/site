@@ -402,8 +402,15 @@
                     </div>
                   </div>
                   <div class="form-group">
-                    <label>Ekran Görüntüleri (İsteğe Bağlı - Her satıra 1 URL)</label>
-                    <textarea id="gScreenshots" rows="2" placeholder="https://.../ekran1.jpg"></textarea>
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                      <label style="margin:0;">Ekran Görüntüleri (İsteğe Bağlı)</label>
+                      <label class="upload-file-btn" style="cursor:pointer;padding:4px 10px;font-size:0.78rem;">
+                        📁 Resim Seç (Çoklu)
+                        <input type="file" id="gScreenshotsFile" accept="image/*" multiple class="hidden" />
+                      </label>
+                    </div>
+                    <div id="screenshotsPreviewContainer" class="screenshots-preview-grid"></div>
+                    <textarea id="gScreenshots" rows="2" placeholder="Yukarıdaki 'Resim Seç' butonuyla bilgisayardan birden fazla resim seçebilir veya buraya her satıra bir URL yazabilirsiniz..."></textarea>
                   </div>
                 </div>
 

@@ -1157,6 +1157,61 @@ button, input, select, textarea {
   object-fit: cover;
 }
 
+/* ADMİN EKRAN GÖRÜNTÜSÜ SEÇİM ÖNİZLEME */
+.screenshots-preview-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.screenshots-preview-grid:empty {
+  display: none;
+}
+
+.screenshot-preview-card {
+  position: relative;
+  width: 96px;
+  height: 60px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: #090204;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.screenshot-preview-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.screenshot-preview-remove {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(212, 20, 58, 0.92);
+  color: #fff;
+  border: none;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+  padding: 0;
+  line-height: 1;
+}
+
+.screenshot-preview-remove:hover {
+  background: #ff1e4d;
+  transform: scale(1.15);
+}
+
 /* YOUTUBE VİDEO OYNATICI */
 .video-embed-wrap {
   position: relative;

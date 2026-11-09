@@ -1283,6 +1283,44 @@ function addLinkEditorRow(link = { type: 'drive', provider: 'Google Drive', labe
   container.appendChild(row);
 }
 
+function renderScreenshotsPreview() {
+  const container = document.getElementById('screenshotsPreviewContainer');
+  const textarea = document.getElementById('gScreenshots');
+  if (!container || !textarea) return;
+
+  const urls = textarea.value
+    .split('\n')
+    .map(s => s.trim())
+    .filter(Boolean);
+
+  if (urls.length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+
+  container.innerHTML = urls.map((url, idx) => `
+    <div class="screenshot-preview-card">
+      <img src="${escapeHtml(url)}" alt="Ekran ${idx + 1}" />
+      <button type="button" class="screenshot-preview-remove" onclick="removeScreenshotPreview(${idx})" title="Bu ekran görüntüsünü kaldır">✕</button>
+    </div>
+  `).join('');
+}
+
+function removeScreenshotPreview(indexToRemove) {
+  const textarea = document.getElementById('gScreenshots');
+  if (!textarea) return;
+  const urls = textarea.value
+    .split('\n')
+    .map(s => s.trim())
+    .filter(Boolean);
+
+  if (indexToRemove >= 0 && indexToRemove < urls.length) {
+    urls.splice(indexToRemove, 1);
+    textarea.value = urls.join('\n');
+    renderScreenshotsPreview();
+  }
+}
+
 function resetGameForm() {
   const editId = document.getElementById('editGameId');
   const modeTitle = document.getElementById('formModeTitle');
@@ -1302,6 +1340,10 @@ function resetGameForm() {
   if (ytInput) ytInput.value = '';
   const dlNoteInput = document.getElementById('gDownloadNote');
   if (dlNoteInput) dlNoteInput.value = '';
+  const ssInput = document.getElementById('gScreenshots');
+  if (ssInput) ssInput.value = '';
+  renderScreenshotsPreview();
+
   if (linksWrap) {
     linksWrap.innerHTML = '';
     addLinkEditorRow({ type: 'drive', label: 'Google Drive Tek Link İndir', url: '' });
@@ -1329,6 +1371,7 @@ function startEditGame(gameId) {
   document.getElementById('gFeatured').checked = Boolean(g.featured);
   document.getElementById('gCover').value = g.cover || '';
   document.getElementById('gScreenshots').value = Array.isArray(g.screenshots) ? g.screenshots.join('\n') : '';
+  renderScreenshotsPreview();
   const ytEl = document.getElementById('gYoutubeUrl');
   if (ytEl) ytEl.value = g.youtubeUrl || '';
   const rarEl = document.getElementById('gRarPass');
@@ -1949,6 +1992,47 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     };
     reader.readAsDataURL(file);
+  });
+
+  bindOn('gScreenshots', 'input', () => renderScreenshotsPreview());
+
+  bindOn('gScreenshotsFile', 'change', async e => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    showToast(`${files.length} ekran görüntüsü yükleniyor...`);
+
+    const textarea = document.getElementById('gScreenshots');
+    const existing = textarea ? textarea.value.split('\n').map(s => s.trim()).filter(Boolean) : [];
+
+    for (const file of files) {
+      try {
+        const dataUrl = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+
+        const res = await api('/api/upload', {
+          method: 'POST',
+          body: JSON.stringify({ dataUrl })
+        });
+
+        if (res && res.url) {
+          existing.push(res.url);
+        }
+      } catch (err) {
+        console.error('Ekran görüntüsü yükleme hatası:', err);
+      }
+    }
+
+    if (textarea) {
+      textarea.value = existing.join('\n');
+    }
+    renderScreenshotsPreview();
+    showToast(`${files.length} ekran görüntüsü başarıyla yüklendi.`);
+    e.target.value = '';
   });
 
   bindOn('adminGameForm', 'submit', async e => {
