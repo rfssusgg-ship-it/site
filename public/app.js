@@ -630,6 +630,7 @@ function renderShowcase() {
         ` : ''}
         <div class="showcase-bottom">
           <h3>${escapeHtml(g.title)}</h3>
+          ${isAdmin() ? `<div style="font-size:0.75rem;color:rgba(255,255,255,0.88);margin-top:2px;font-weight:600;">👁️ ${Number(g.viewCount) || 0} • ⬇️ ${Number(g.downloadCount) || 0}</div>` : ''}
         </div>
       </div>
     </article>
@@ -750,6 +751,12 @@ function renderGameFeed() {
               <span>${formatDate(g.createdAt)}</span>
               <span>•</span>
               <span>${commentCount} Yorum</span>
+              ${isAdmin() ? `
+                <span>•</span>
+                <span title="Görüntülenme Sayısı" style="color:var(--text-main,#fff);font-weight:600;">👁️ ${Number(g.viewCount) || 0}</span>
+                <span>•</span>
+                <span title="İndirme Sayısı" style="color:var(--green,#22c55e);font-weight:700;">⬇️ ${Number(g.downloadCount) || 0}</span>
+              ` : ''}
             </div>
             <div class="gc-actions">
               ${isAdmin() ? `<button type="button" class="btn-edit-quick" onclick="startEditGame('${escapeHtml(g.id)}')">Düzenle</button>` : ''}
@@ -814,6 +821,72 @@ function renderSidebar() {
 }
 
 /* 4. OYUN DETAY VE İNDİRME SAYFASI */
+function trackGameView(gameId) {
+  if (!gameId) return;
+  const storageKey = `oig_viewed_${gameId}`;
+  if (sessionStorage.getItem(storageKey)) return;
+  sessionStorage.setItem(storageKey, '1');
+
+  fetch(`/api/games/${encodeURIComponent(gameId)}/view`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(state.authToken ? { 'x-auth-token': state.authToken } : {})
+    }
+  })
+    .then(r => r.json())
+    .then(res => {
+      if (res && res.ok) {
+        const game = state.games.find(g => g.id === gameId);
+        if (game && isAdmin()) {
+          if (res.viewCount !== undefined) {
+            game.viewCount = res.viewCount;
+          } else {
+            game.viewCount = (Number(game.viewCount) || 0) + 1;
+          }
+          updateDetailAdminStats(gameId);
+        }
+      }
+    })
+    .catch(() => {});
+}
+
+function trackGameDownload(gameId) {
+  if (!gameId) return;
+  fetch(`/api/games/${encodeURIComponent(gameId)}/download`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(state.authToken ? { 'x-auth-token': state.authToken } : {})
+    }
+  })
+    .then(r => r.json())
+    .then(res => {
+      if (res && res.ok) {
+        const game = state.games.find(g => g.id === gameId);
+        if (game && isAdmin()) {
+          if (res.downloadCount !== undefined) {
+            game.downloadCount = res.downloadCount;
+          } else {
+            game.downloadCount = (Number(game.downloadCount) || 0) + 1;
+          }
+          updateDetailAdminStats(gameId);
+        }
+      }
+    })
+    .catch(() => {});
+}
+
+function updateDetailAdminStats(gameId) {
+  if (!isAdmin()) return;
+  const game = state.games.find(g => g.id === gameId);
+  if (!game) return;
+  const vEl = document.getElementById('detailViewCount');
+  const dEl = document.getElementById('detailDlCount');
+  if (vEl) vEl.textContent = Number(game.viewCount) || 0;
+  if (dEl) dEl.textContent = Number(game.downloadCount) || 0;
+}
+
 function navigateToGame(gameId) {
   window.location.hash = `#/oyun/${encodeURIComponent(gameId)}`;
   openGameDetail(gameId);
@@ -826,6 +899,7 @@ function openGameDetail(gameId) {
     goHomeView();
     return;
   }
+  trackGameView(gameId);
   state.currentGameId = gameId;
   switchView('detail');
   renderGameDetail(gameId);
@@ -905,6 +979,14 @@ function renderGameDetail(gameId) {
             <div class="detail-specs-grid">
               ${specPills.join('')}
             </div>
+            ${isAdmin() ? `
+              <div class="admin-stats-badge-box" id="detailAdminStatsBox">
+                <span class="asb-label">👑 Admin İstatistikleri</span>
+                <span class="asb-item" title="Görüntülenme Sayısı">👁️ <strong id="detailViewCount">${Number(g.viewCount) || 0}</strong> Görüntülenme</span>
+                <span class="asb-divider">•</span>
+                <span class="asb-item" title="İndirme Sayısı" style="color:var(--green,#22c55e);">⬇️ <strong id="detailDlCount" style="color:var(--green,#22c55e);">${Number(g.downloadCount) || 0}</strong> İndirme</span>
+              </div>
+            ` : ''}
           </div>
         </div>
       </div>
@@ -986,7 +1068,7 @@ function renderGameDetail(gameId) {
 
               <div class="download-links-stack">
                 ${validLinks.map(lnk => `
-                  <a href="${escapeHtml(lnk.url)}" target="_blank" rel="noopener" class="dl-btn ${escapeHtml(lnk.type || 'other')}">
+                  <a href="${escapeHtml(lnk.url)}" target="_blank" rel="noopener" class="dl-btn ${escapeHtml(lnk.type || 'other')}" onclick="trackGameDownload('${escapeHtml(g.id)}')">
                     <span>${escapeHtml(hasVal(lnk.label) ? lnk.label : (lnk.provider || 'Oyunu İndir'))}</span>
                     <span style="font-size:0.76rem;">İNDİR →</span>
                   </a>
@@ -1676,6 +1758,9 @@ function renderAdminDashboard() {
 
   const statsGrid = document.getElementById('adminStatsGrid');
   if (statsGrid) {
+    const totalViews = state.games.reduce((sum, g) => sum + (Number(g.viewCount) || 0), 0);
+    const totalDownloads = state.games.reduce((sum, g) => sum + (Number(g.downloadCount) || 0), 0);
+
     statsGrid.innerHTML = `
       <div class="stat-card">
         <span>Yüklü Oyunlar</span>
@@ -1684,6 +1769,14 @@ function renderAdminDashboard() {
       <div class="stat-card">
         <span>Kayıtlı Üyeler</span>
         <strong>${state.users.length}</strong>
+      </div>
+      <div class="stat-card" style="border-left-color: #3b82f6;">
+        <span>Toplam Görüntülenme</span>
+        <strong style="color: #60a5fa;">👁️ ${totalViews}</strong>
+      </div>
+      <div class="stat-card" style="border-left-color: #22c55e;">
+        <span>Toplam İndirme</span>
+        <strong style="color: #4ade80;">⬇️ ${totalDownloads}</strong>
       </div>
       <div class="stat-card">
         <span>Yapılan Yorumlar</span>
@@ -1708,7 +1801,7 @@ function renderAdminDashboard() {
         <div class="req-item" style="margin-bottom:8px;">
           <div>
             <strong>${escapeHtml(g.title)}</strong>
-            <span style="display:block;font-size:0.74rem;color:var(--text-muted);">${escapeHtml(g.category || 'Kategori Yok')} • ${formatDate(g.createdAt)}</span>
+            <span style="display:block;font-size:0.74rem;color:var(--text-muted);">${escapeHtml(g.category || 'Kategori Yok')} • ${formatDate(g.createdAt)} • 👁️ ${Number(g.viewCount) || 0} • ⬇️ ${Number(g.downloadCount) || 0}</span>
           </div>
           <div style="display:flex;gap:6px;">
             <button type="button" class="btn-edit-quick" onclick="startEditGame('${escapeHtml(g.id)}')">Düzenle</button>
@@ -1762,6 +1855,7 @@ function renderAdminDashboard() {
             <tr>
               <th>Oyun Adı</th>
               <th>Kategori</th>
+              <th>Görüntüleme / İndirme</th>
               <th>Boyut</th>
               <th>Yorum</th>
               <th>Vitrin</th>
@@ -1775,6 +1869,11 @@ function renderAdminDashboard() {
                 <tr>
                   <td><strong>${escapeHtml(g.title)}</strong>${hasVal(g.version) ? `<br><small style="color:var(--text-muted);">${escapeHtml(g.version)}</small>` : ''}</td>
                   <td>${escapeHtml(g.category || '-')}</td>
+                  <td>
+                    <span style="display:inline-flex;align-items:center;gap:4px;font-size:0.82rem;font-weight:600;color:var(--text-main,#fff);" title="Görüntülenme">👁️ ${Number(g.viewCount) || 0}</span>
+                    <span style="color:var(--text-muted);margin:0 4px;">•</span>
+                    <span style="display:inline-flex;align-items:center;gap:4px;font-size:0.82rem;font-weight:700;color:var(--green,#22c55e);" title="İndirme">⬇️ ${Number(g.downloadCount) || 0}</span>
+                  </td>
                   <td>${escapeHtml(g.size || '-')}</td>
                   <td>${cCount} Yorum</td>
                   <td>${g.featured ? '<span class="badge-admin">VİTRİNDE</span>' : 'Hayır'}</td>

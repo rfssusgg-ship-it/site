@@ -1752,7 +1752,7 @@ button, input, select, textarea {
 
 .admin-stats {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
   gap: 12px;
   margin-bottom: 18px;
 }
@@ -1776,6 +1776,37 @@ button, input, select, textarea {
   font-weight: 800;
   color: #fff;
   margin-top: 4px;
+}
+
+.admin-stats-badge-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(229, 9, 20, 0.08);
+  border: 1px solid rgba(229, 9, 20, 0.28);
+  padding: 8px 14px;
+  border-radius: 8px;
+  margin-top: 14px;
+  font-size: 0.85rem;
+  color: #fff;
+  flex-wrap: wrap;
+}
+
+.admin-stats-badge-box .asb-label {
+  font-weight: 700;
+  color: #ffd700;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.admin-stats-badge-box .asb-item strong {
+  color: #fff;
+  font-weight: 800;
+}
+
+.admin-stats-badge-box .asb-divider {
+  color: var(--text-muted);
 }
 
 .admin-dashboard-grid {

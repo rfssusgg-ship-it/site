@@ -201,9 +201,23 @@ const server = http.createServer(async (req, res) => {
       const isAdmin = currentUser && currentUser.role === 'admin';
       const enrichedComments = enrichComments(db.comments, db.users);
 
+      const safeGames = (db.games || []).map(g => {
+        if (isAdmin) {
+          return {
+            ...g,
+            viewCount: Number(g.viewCount) || 0,
+            downloadCount: Number(g.downloadCount) || 0
+          };
+        }
+        const clean = { ...g };
+        delete clean.viewCount;
+        delete clean.downloadCount;
+        return clean;
+      });
+
       return sendJSON(res, 200, {
         settings: db.settings,
-        games: db.games,
+        games: safeGames,
         comments: enrichedComments,
         requests: isAdmin ? db.requests : [],
         brokenReports: isAdmin ? db.brokenReports : [],
@@ -414,6 +428,8 @@ const server = http.createServer(async (req, res) => {
         repack: String(body.repack || '').trim(),
         featured: Boolean(body.featured),
         createdAt: existingIndex > -1 ? db.games[existingIndex].createdAt : new Date().toISOString(),
+        viewCount: existingIndex > -1 ? (Number(db.games[existingIndex].viewCount) || 0) : 0,
+        downloadCount: existingIndex > -1 ? (Number(db.games[existingIndex].downloadCount) || 0) : 0,
         cover: String(body.cover || '').trim(),
         coverPosition: String(body.coverPosition || '50% 50%').trim(),
         coverScale: Number(body.coverScale) || 1,
@@ -473,6 +489,46 @@ const server = http.createServer(async (req, res) => {
       db.deletedGameIds = Array.from(new Set([...(db.deletedGameIds || []), id]));
       writeDB(db);
       return sendJSON(res, 200, { ok: true, games: db.games });
+    }
+
+    // 8.1 Oyun Görüntülenme Sayacı (Herkese Açık artırılır, sayaç sadece adminse döner)
+    if (pathname.match(/^\/api\/games\/[^/]+\/view$/) && method === 'POST') {
+      const parts = pathname.split('/');
+      const id = decodeURIComponent(parts[3] || '');
+      const db = readDB();
+      const game = (db.games || []).find(g => g.id === id);
+      if (!game) return sendJSON(res, 404, { error: 'Oyun bulunamadı' });
+
+      game.viewCount = (Number(game.viewCount) || 0) + 1;
+      game.updatedAt = new Date().toISOString();
+      writeDB(db);
+
+      const currentUser = getCurrentUser(req, db);
+      const isAdmin = currentUser && currentUser.role === 'admin';
+      return sendJSON(res, 200, {
+        ok: true,
+        viewCount: isAdmin ? game.viewCount : undefined
+      });
+    }
+
+    // 8.2 Oyun İndirme Sayacı (Herkese Açık artırılır, sayaç sadece adminse döner)
+    if (pathname.match(/^\/api\/games\/[^/]+\/download$/) && method === 'POST') {
+      const parts = pathname.split('/');
+      const id = decodeURIComponent(parts[3] || '');
+      const db = readDB();
+      const game = (db.games || []).find(g => g.id === id);
+      if (!game) return sendJSON(res, 404, { error: 'Oyun bulunamadı' });
+
+      game.downloadCount = (Number(game.downloadCount) || 0) + 1;
+      game.updatedAt = new Date().toISOString();
+      writeDB(db);
+
+      const currentUser = getCurrentUser(req, db);
+      const isAdmin = currentUser && currentUser.role === 'admin';
+      return sendJSON(res, 200, {
+        ok: true,
+        downloadCount: isAdmin ? game.downloadCount : undefined
+      });
     }
 
     // 9. Yorum Ekle

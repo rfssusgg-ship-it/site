@@ -192,6 +192,11 @@ function mergeDBs(aRaw, bRaw) {
         const tokens = Array.from(new Set([...(cur.tokens || []), ...(item.tokens || []), cur.token, item.token].filter(Boolean)));
         winner = { ...winner, tokens };
       }
+      if (k === 'games') {
+        const maxViews = Math.max(Number(cur.viewCount) || 0, Number(item.viewCount) || 0);
+        const maxDl = Math.max(Number(cur.downloadCount) || 0, Number(item.downloadCount) || 0);
+        winner = { ...winner, viewCount: maxViews, downloadCount: maxDl };
+      }
       map.set(item.id, winner);
     };
     newer[k].forEach(x => consider(x, true));
