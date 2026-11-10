@@ -912,14 +912,115 @@ function openGameDetail(gameId) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+function parseSysReqText(text) {
+  if (!text || typeof text !== 'string') {
+    return { raw: '', lines: [], os: '', cpu: '', ram: '', gpu: '', storage: '' };
+  }
+  const raw = text.trim();
+  if (!raw) {
+    return { raw: '', lines: [], os: '', cpu: '', ram: '', gpu: '', storage: '' };
+  }
+
+  const rawLines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const parsedLines = [];
+  const result = {
+    raw,
+    lines: [],
+    os: '',
+    cpu: '',
+    ram: '',
+    gpu: '',
+    storage: ''
+  };
+
+  rawLines.forEach(line => {
+    const cleanLine = line.replace(/^[\s*•\-–—#]+/, '').replace(/^\d+[\.\)]\s*/, '').trim();
+    if (!cleanLine) return;
+
+    const colonIdx = cleanLine.indexOf(':');
+    if (colonIdx > -1) {
+      const rawLabel = cleanLine.substring(0, colonIdx).trim().replace(/[\*\:]+$/g, '').trim();
+      const rawVal = cleanLine.substring(colonIdx + 1).trim();
+      if (!rawVal && !rawLabel) return;
+
+      const lowerLabel = rawLabel.replace(/İ/g, 'i').replace(/I/g, 'ı').toLowerCase();
+      let matchedKey = '';
+
+      if (lowerLabel.includes('işletim') || lowerLabel.includes('isletim') || lowerLabel === 'os' || lowerLabel.startsWith('os ') || lowerLabel.includes('operating system') || lowerLabel.includes('windows')) {
+        matchedKey = 'os';
+      } else if (lowerLabel.includes('işlemci') || lowerLabel.includes('islemci') || lowerLabel.includes('processor') || lowerLabel.includes('cpu')) {
+        matchedKey = 'cpu';
+      } else if (lowerLabel.includes('bellek') || lowerLabel.includes('ram') || lowerLabel.includes('memory')) {
+        matchedKey = 'ram';
+      } else if (lowerLabel.includes('ekran') || lowerLabel.includes('grafik') || lowerLabel.includes('graphics') || lowerLabel.includes('gpu') || lowerLabel.includes('video')) {
+        matchedKey = 'gpu';
+      } else if (lowerLabel.includes('depolama') || lowerLabel.includes('storage') || lowerLabel.includes('hard drive') || lowerLabel.includes('disk') || lowerLabel.includes('hdd') || lowerLabel.includes('ssd') || lowerLabel.includes('alan')) {
+        matchedKey = 'storage';
+      }
+
+      if (matchedKey && !result[matchedKey]) {
+        result[matchedKey] = rawVal;
+      }
+
+      parsedLines.push({
+        label: rawLabel,
+        value: rawVal
+      });
+    } else {
+      parsedLines.push({
+        label: '',
+        value: cleanLine
+      });
+    }
+  });
+
+  result.lines = parsedLines;
+  return result;
+}
+
+function formatSysReqForTextarea(reqObj) {
+  if (!reqObj) return '';
+  if (hasVal(reqObj.raw)) return reqObj.raw;
+  if (Array.isArray(reqObj.lines) && reqObj.lines.length > 0) {
+    return reqObj.lines.map(l => l.label ? `${l.label}: ${l.value}` : l.value).join('\n');
+  }
+  const lines = [];
+  if (hasVal(reqObj.os)) lines.push(`İşletim Sistemi: ${reqObj.os}`);
+  if (hasVal(reqObj.cpu)) lines.push(`İşlemci: ${reqObj.cpu}`);
+  if (hasVal(reqObj.ram)) lines.push(`Bellek: ${reqObj.ram}`);
+  if (hasVal(reqObj.gpu)) lines.push(`Ekran Kartı: ${reqObj.gpu}`);
+  if (hasVal(reqObj.storage)) lines.push(`Depolama: ${reqObj.storage}`);
+  return lines.join('\n');
+}
+
 function renderSysReqBox(title, reqObj) {
   if (!reqObj) return '';
   const rows = [];
-  if (hasVal(reqObj.os)) rows.push(`<li><span>İşletim Sistemi:</span> <strong>${escapeHtml(reqObj.os)}</strong></li>`);
-  if (hasVal(reqObj.cpu)) rows.push(`<li><span>İşlemci:</span> <strong>${escapeHtml(reqObj.cpu)}</strong></li>`);
-  if (hasVal(reqObj.ram)) rows.push(`<li><span>Bellek:</span> <strong>${escapeHtml(reqObj.ram)}</strong></li>`);
-  if (hasVal(reqObj.gpu)) rows.push(`<li><span>Ekran Kartı:</span> <strong>${escapeHtml(reqObj.gpu)}</strong></li>`);
-  if (hasVal(reqObj.storage)) rows.push(`<li><span>Depolama:</span> <strong>${escapeHtml(reqObj.storage)}</strong></li>`);
+
+  if (Array.isArray(reqObj.lines) && reqObj.lines.length > 0) {
+    reqObj.lines.forEach(item => {
+      if (item.label && item.value) {
+        rows.push(`<li><span>${escapeHtml(item.label)}:</span> <strong>${escapeHtml(item.value)}</strong></li>`);
+      } else if (item.value) {
+        rows.push(`<li><strong style="text-align:left;font-weight:500;color:var(--text-main);">${escapeHtml(item.value)}</strong></li>`);
+      }
+    });
+  } else if (hasVal(reqObj.raw)) {
+    const parsed = parseSysReqText(reqObj.raw);
+    parsed.lines.forEach(item => {
+      if (item.label && item.value) {
+        rows.push(`<li><span>${escapeHtml(item.label)}:</span> <strong>${escapeHtml(item.value)}</strong></li>`);
+      } else if (item.value) {
+        rows.push(`<li><strong style="text-align:left;font-weight:500;color:var(--text-main);">${escapeHtml(item.value)}</strong></li>`);
+      }
+    });
+  } else {
+    if (hasVal(reqObj.os)) rows.push(`<li><span>İşletim Sistemi:</span> <strong>${escapeHtml(reqObj.os)}</strong></li>`);
+    if (hasVal(reqObj.cpu)) rows.push(`<li><span>İşlemci:</span> <strong>${escapeHtml(reqObj.cpu)}</strong></li>`);
+    if (hasVal(reqObj.ram)) rows.push(`<li><span>Bellek:</span> <strong>${escapeHtml(reqObj.ram)}</strong></li>`);
+    if (hasVal(reqObj.gpu)) rows.push(`<li><span>Ekran Kartı:</span> <strong>${escapeHtml(reqObj.gpu)}</strong></li>`);
+    if (hasVal(reqObj.storage)) rows.push(`<li><span>Depolama:</span> <strong>${escapeHtml(reqObj.storage)}</strong></li>`);
+  }
 
   if (rows.length === 0) return '';
   return `
@@ -1659,6 +1760,11 @@ function resetGameForm() {
   if (ssInput) ssInput.value = '';
   renderScreenshotsPreview();
 
+  const minSysEl = document.getElementById('minSysReqText');
+  const recSysEl = document.getElementById('recSysReqText');
+  if (minSysEl) minSysEl.value = '';
+  if (recSysEl) recSysEl.value = '';
+
   resetCoverPos();
 
   if (linksWrap) {
@@ -1719,19 +1825,10 @@ function startEditGame(gameId) {
   document.getElementById('gDescription').value = g.description || '';
   document.getElementById('gInstallNotes').value = g.installNotes || '';
 
-  const min = g.sysReq?.min || {};
-  const rec = g.sysReq?.rec || {};
-  document.getElementById('minOs').value = min.os || '';
-  document.getElementById('minCpu').value = min.cpu || '';
-  document.getElementById('minRam').value = min.ram || '';
-  document.getElementById('minGpu').value = min.gpu || '';
-  document.getElementById('minStorage').value = min.storage || '';
-
-  document.getElementById('recOs').value = rec.os || '';
-  document.getElementById('recCpu').value = rec.cpu || '';
-  document.getElementById('recRam').value = rec.ram || '';
-  document.getElementById('recGpu').value = rec.gpu || '';
-  document.getElementById('recStorage').value = rec.storage || '';
+  const minEl = document.getElementById('minSysReqText');
+  const recEl = document.getElementById('recSysReqText');
+  if (minEl) minEl.value = formatSysReqForTextarea(g.sysReq?.min);
+  if (recEl) recEl.value = formatSysReqForTextarea(g.sysReq?.rec);
 
   const linksContainer = document.getElementById('linksRowsContainer');
   linksContainer.innerHTML = '';
@@ -2441,20 +2538,8 @@ document.addEventListener('DOMContentLoaded', () => {
       description: document.getElementById('gDescription').value,
       installNotes: document.getElementById('gInstallNotes').value,
       sysReq: {
-        min: {
-          os: document.getElementById('minOs').value,
-          cpu: document.getElementById('minCpu').value,
-          ram: document.getElementById('minRam').value,
-          gpu: document.getElementById('minGpu').value,
-          storage: document.getElementById('minStorage').value
-        },
-        rec: {
-          os: document.getElementById('recOs').value,
-          cpu: document.getElementById('recCpu').value,
-          ram: document.getElementById('recRam').value,
-          gpu: document.getElementById('recGpu').value,
-          storage: document.getElementById('recStorage').value
-        }
+        min: parseSysReqText(document.getElementById('minSysReqText')?.value || ''),
+        rec: parseSysReqText(document.getElementById('recSysReqText')?.value || '')
       },
       links
     };

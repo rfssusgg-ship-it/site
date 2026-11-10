@@ -405,6 +405,50 @@ const server = http.createServer(async (req, res) => {
       return sendJSON(res, 200, { ok: true, url: body.dataUrl });
     }
 
+function normalizeSysReqPart(part) {
+  if (!part) return { raw: '', lines: [], os: '', cpu: '', ram: '', gpu: '', storage: '' };
+  if (typeof part === 'string') {
+    part = { raw: part };
+  }
+  const raw = String(part.raw || '').trim();
+  let os = String(part.os || '').trim();
+  let cpu = String(part.cpu || '').trim();
+  let ram = String(part.ram || '').trim();
+  let gpu = String(part.gpu || '').trim();
+  let storage = String(part.storage || '').trim();
+  let lines = Array.isArray(part.lines) ? part.lines.filter(Boolean) : [];
+
+  if (raw && lines.length === 0) {
+    const rawLines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    rawLines.forEach(line => {
+      const cleanLine = line.replace(/^[\s*•\-–—#]+/, '').replace(/^\d+[\.\)]\s*/, '').trim();
+      if (!cleanLine) return;
+      const colonIdx = cleanLine.indexOf(':');
+      if (colonIdx > -1) {
+        const rawLabel = cleanLine.substring(0, colonIdx).trim().replace(/[\*\:]+$/g, '').trim();
+        const rawVal = cleanLine.substring(colonIdx + 1).trim();
+        const lowerLabel = rawLabel.replace(/İ/g, 'i').replace(/I/g, 'ı').toLowerCase();
+        if (!os && (lowerLabel.includes('işletim') || lowerLabel.includes('isletim') || lowerLabel === 'os' || lowerLabel.startsWith('os ') || lowerLabel.includes('windows'))) {
+          os = rawVal;
+        } else if (!cpu && (lowerLabel.includes('işlemci') || lowerLabel.includes('islemci') || lowerLabel.includes('processor') || lowerLabel.includes('cpu'))) {
+          cpu = rawVal;
+        } else if (!ram && (lowerLabel.includes('bellek') || lowerLabel.includes('ram') || lowerLabel.includes('memory'))) {
+          ram = rawVal;
+        } else if (!gpu && (lowerLabel.includes('ekran') || lowerLabel.includes('grafik') || lowerLabel.includes('graphics') || lowerLabel.includes('gpu') || lowerLabel.includes('video'))) {
+          gpu = rawVal;
+        } else if (!storage && (lowerLabel.includes('depolama') || lowerLabel.includes('storage') || lowerLabel.includes('disk') || lowerLabel.includes('hdd') || lowerLabel.includes('ssd') || lowerLabel.includes('alan'))) {
+          storage = rawVal;
+        }
+        lines.push({ label: rawLabel, value: rawVal });
+      } else {
+        lines.push({ label: '', value: cleanLine });
+      }
+    });
+  }
+
+  return { raw, lines, os, cpu, ram, gpu, storage };
+}
+
     // 7. Oyun Ekle veya Güncelle (Sadece Admin)
     if (pathname === '/api/games' && method === 'POST') {
       const db = readDB();
@@ -443,20 +487,8 @@ const server = http.createServer(async (req, res) => {
         description: String(body.description || '').trim(),
         installNotes: String(body.installNotes || '').trim(),
         sysReq: {
-          min: {
-            os: String(body.sysReq?.min?.os || '').trim(),
-            cpu: String(body.sysReq?.min?.cpu || '').trim(),
-            ram: String(body.sysReq?.min?.ram || '').trim(),
-            gpu: String(body.sysReq?.min?.gpu || '').trim(),
-            storage: String(body.sysReq?.min?.storage || '').trim()
-          },
-          rec: {
-            os: String(body.sysReq?.rec?.os || '').trim(),
-            cpu: String(body.sysReq?.rec?.cpu || '').trim(),
-            ram: String(body.sysReq?.rec?.ram || '').trim(),
-            gpu: String(body.sysReq?.rec?.gpu || '').trim(),
-            storage: String(body.sysReq?.rec?.storage || '').trim()
-          }
+          min: normalizeSysReqPart(body.sysReq?.min),
+          rec: normalizeSysReqPart(body.sysReq?.rec)
         },
         links: Array.isArray(body.links)
           ? body.links.filter(l => l && String(l.url || '').trim() !== '')

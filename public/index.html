@@ -520,23 +520,24 @@
                 </div>
 
                 <div class="sysreq-editor">
-                  <h4>Sistem Gereksinimleri (İsteğe Bağlı — Boş bıraktığınız satırlar gizlenir)</h4>
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+                    <h4 style="margin:0;border:none;padding:0;">Sistem Gereksinimleri (Minimum & Önerilen)</h4>
+                    <span style="font-size:0.75rem;color:var(--text-muted);">Tek tek tıklamak yerine tüm gereksinimleri direkt kutulara kopyala-yapıştır yapabilirsiniz.</span>
+                  </div>
                   <div class="form-row-2">
                     <div class="sysreq-col-box">
-                      <h5>Minimum</h5>
-                      <input type="text" id="minOs" placeholder="İşletim Sistemi" />
-                      <input type="text" id="minCpu" placeholder="İşlemci" />
-                      <input type="text" id="minRam" placeholder="Bellek (RAM)" />
-                      <input type="text" id="minGpu" placeholder="Ekran Kartı" />
-                      <input type="text" id="minStorage" placeholder="Depolama" />
+                      <label style="font-size:0.82rem;font-weight:700;color:var(--text-main);margin-bottom:4px;display:flex;align-items:center;gap:6px;">
+                        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--red);"></span>
+                        Minimum Sistem Gereksinimleri
+                      </label>
+                      <textarea id="minSysReqText" rows="6" placeholder="Minimum gereksinimleri direkt buraya yapıştırın...&#10;Örn:&#10;İşletim Sistemi: Windows 10 64-bit&#10;İşlemci: Intel Core i5-4460&#10;Bellek: 6 GB RAM&#10;Ekran Kartı: GTX 960&#10;Depolama: 20 GB"></textarea>
                     </div>
                     <div class="sysreq-col-box">
-                      <h5>Önerilen</h5>
-                      <input type="text" id="recOs" placeholder="İşletim Sistemi" />
-                      <input type="text" id="recCpu" placeholder="İşlemci" />
-                      <input type="text" id="recRam" placeholder="Bellek (RAM)" />
-                      <input type="text" id="recGpu" placeholder="Ekran Kartı" />
-                      <input type="text" id="recStorage" placeholder="Depolama" />
+                      <label style="font-size:0.82rem;font-weight:700;color:var(--text-main);margin-bottom:4px;display:flex;align-items:center;gap:6px;">
+                        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;"></span>
+                        Önerilen Sistem Gereksinimleri
+                      </label>
+                      <textarea id="recSysReqText" rows="6" placeholder="Önerilen gereksinimleri direkt buraya yapıştırın...&#10;Örn:&#10;İşletim Sistemi: Windows 10/11 64-bit&#10;İşlemci: Intel Core i5-8400&#10;Bellek: 16 GB RAM&#10;Ekran Kartı: GTX 1060&#10;Depolama: 20 GB"></textarea>
                     </div>
                   </div>
                 </div>

@@ -1961,13 +1961,29 @@ button, input, select, textarea {
   margin-top: 8px;
 }
 
-.sysreq-col-box input {
+.sysreq-col-box input,
+.sysreq-col-box textarea {
   background: var(--bg-input);
   border: 1px solid var(--border);
   color: #fff;
-  padding: 8px 10px;
-  border-radius: 5px;
+  padding: 10px 12px;
+  border-radius: 6px;
   font-size: 0.82rem;
+  font-family: inherit;
+}
+
+.sysreq-col-box textarea {
+  width: 100%;
+  line-height: 1.5;
+  resize: vertical;
+  min-height: 140px;
+}
+
+.sysreq-col-box textarea:focus,
+.sysreq-col-box input:focus {
+  border-color: var(--red);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(229, 9, 20, 0.2);
 }
 
 .links-editor-head {
