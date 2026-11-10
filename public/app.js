@@ -231,6 +231,12 @@ const PLAYLIST = [
     artist: 'Kalben',
     src: '/music/dusunurum.m4a?v=fade2',
     cover: '/music/dusunurum.jpg'
+  },
+  {
+    title: 'Konna Netlaka',
+    artist: 'Fairuz',
+    src: '/music/konna-netlaka.m4a?v=fade2',
+    cover: '/music/konna-netlaka.jpg'
   }
 ];
 
@@ -1876,11 +1882,13 @@ function renderAdminDashboard() {
                   </td>
                   <td>${escapeHtml(g.size || '-')}</td>
                   <td>${cCount} Yorum</td>
-                  <td>${g.featured ? '<span class="badge-admin">VİTRİNDE</span>' : 'Hayır'}</td>
-                  <td style="display:flex;gap:6px;">
-                    <button type="button" class="btn-secondary btn-sm" onclick="navigateToGame('${escapeHtml(g.id)}')">Aç</button>
-                    <button type="button" class="btn-edit-quick" onclick="startEditGame('${escapeHtml(g.id)}')">Düzenle</button>
-                    <button type="button" class="btn-danger btn-sm" onclick="deleteGameAdmin('${escapeHtml(g.id)}')">Sil</button>
+                  <td>${g.featured ? '<span class="badge-admin">VİTRİNDE</span>' : '<span style="color:var(--text-muted);">Hayır</span>'}</td>
+                  <td class="admin-actions-cell">
+                    <div class="admin-actions-wrap">
+                      <button type="button" class="btn-secondary btn-sm" onclick="navigateToGame('${escapeHtml(g.id)}')">Aç</button>
+                      <button type="button" class="btn-edit-quick" onclick="startEditGame('${escapeHtml(g.id)}')">Düzenle</button>
+                      <button type="button" class="btn-danger btn-sm" onclick="deleteGameAdmin('${escapeHtml(g.id)}')">Sil</button>
+                    </div>
                   </td>
                 </tr>
               `;
